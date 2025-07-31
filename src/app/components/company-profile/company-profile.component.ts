@@ -1,7 +1,7 @@
 import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, FormArray, Validators, ReactiveFormsModule } from '@angular/forms';
-import { HttpClient, HttpErrorResponse } from '@angular/common/http';
+import { HttpClient, HttpErrorResponse, HttpHeaders } from '@angular/common/http';
 
 interface CompanyProfile {
   company_name: string;
@@ -63,6 +63,39 @@ interface PrivateKeyValidationResponse {
   profile_data: any;
 }
 
+interface ProfileHistoryResponse {
+  profile_data: any;
+  metadata: {
+    id: string;
+    file_id: string;
+    version: number;
+    profile_hash: string;
+    public_key: string;
+    private_key: string;
+    signature: string;
+    timestamp: string;
+    profile_data: any;
+    created_at: string;
+    updated_at: string;
+  };
+  edit_history: any[];
+  signature_verified: boolean;
+  blockchain_ref: string;
+  data_hash: string;
+}
+
+interface RegulatorProfileData {
+  current_profile: any;
+  history: Array<{
+    version: number;
+    profile_data: any;
+    timestamp: string;
+    profile_hash: string;
+    public_key: string;
+    signature: string;
+  }>;
+}
+
 
 @Component({
   selector: 'app-company-profile',
@@ -105,6 +138,11 @@ export class CompanyProfileComponent implements OnInit {
   updateProfileSuccess: string = '';
   profileUpdateResponse: ProfileUpdateResponse | null = null;
 
+  // Regulator Profile specific states
+  regulatorProfileLoading: boolean = false;
+  regulatorProfileError: string = '';
+  regulatorProfileData: RegulatorProfileData | null = null;
+
   // API base URL
   private readonly API_BASE_URL = 'http://localhost:3000';
 
@@ -146,10 +184,11 @@ export class CompanyProfileComponent implements OnInit {
       competitive_position: ['', Validators.required],
       partnerships: this.fb.array([]),
       certifications: this.fb.array([]),
-      sales_channels: this.fb.array([])
+      sales_channels: this.fb.array([]),
+      private_key: ['', Validators.required]
     });
 
-    // Update Profile Form (same structure as create)
+    // Update Profile Form
     this.updateForm = this.fb.group({
       company_name: ['', Validators.required],
       location: ['', Validators.required],
@@ -171,6 +210,16 @@ export class CompanyProfileComponent implements OnInit {
     this.privateKeyForm = this.fb.group({
       private_key: ['', Validators.required]
     });
+  }
+
+  // Generate a secure private key
+  generatePrivateKey() {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    let result = '';
+    for (let i = 0; i < 64; i++) {
+      result += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    this.createForm.patchValue({ private_key: result });
   }
 
   // Helper methods for FormArrays
@@ -248,6 +297,9 @@ export class CompanyProfileComponent implements OnInit {
     if (tab === 'read') {
       // Load single latest profile when switching to Read tab
       this.loadSingleLatestProfile();
+    } else if (tab === 'regulator') {
+      // Load regulator profile data with history when switching to Regulator tab
+      this.loadRegulatorProfileData();
     }
   }
 
@@ -332,6 +384,78 @@ export class CompanyProfileComponent implements OnInit {
     }
   }
 
+  // Load regulator profile data with complete history
+  async loadRegulatorProfileData() {
+    try {
+      this.regulatorProfileLoading = true;
+      this.regulatorProfileError = '';
+      console.log('🔍 Loading regulator profile data with history...');
+
+      // First, get the latest profile data (same as Read Profile)
+      const latestResponse = await this.http.get<SingleLatestProfileResponse>(
+        `${this.API_BASE_URL}/blockchain/latest-available`
+      ).toPromise();
+
+      if (latestResponse && latestResponse.success && latestResponse.profile_data) {
+        // Get the file_id from the latest profile
+        const fileId = latestResponse.metadata.file_id;
+        
+        // Now get the complete history for this profile
+        const historyResponse = await this.http.get<ProfileHistoryResponse>(
+          `${this.API_BASE_URL}/blockchain/profiles/${fileId}`
+        ).toPromise();
+
+        console.log('📡 History response:', historyResponse);
+
+        if (historyResponse) {
+          // Create history array from the current profile data
+          const historyArray = [{
+            version: historyResponse.metadata.version,
+            profile_data: historyResponse.profile_data,
+            timestamp: historyResponse.metadata.timestamp,
+            profile_hash: historyResponse.metadata.profile_hash,
+            public_key: historyResponse.metadata.public_key,
+            signature: historyResponse.metadata.signature
+          }];
+
+          this.regulatorProfileData = {
+            current_profile: latestResponse.profile_data,
+            history: historyArray
+          };
+          
+          console.log('✅ Regulator profile data loaded successfully');
+          console.log('📊 Current profile:', this.regulatorProfileData.current_profile);
+          console.log('📊 History versions:', this.regulatorProfileData.history.length);
+          
+          this.showSuccess('Regulator profile data loaded successfully');
+        } else {
+          throw new Error('Failed to load profile history');
+        }
+      } else {
+        // No profiles available
+        this.regulatorProfileData = null;
+        console.log('ℹ️ No profiles available for regulator view');
+      }
+    } catch (error: any) {
+      console.error('❌ Error loading regulator profile data:', error);
+      
+      if (error.status === 404) {
+        console.log('ℹ️ No profiles available - this is normal for empty database');
+        this.regulatorProfileError = '';
+        this.regulatorProfileData = null;
+      } else if (error.status === 0) {
+        console.log('❌ Network error - backend not reachable');
+        this.regulatorProfileError = 'Cannot connect to backend server. Please check if the server is running.';
+      } else {
+        this.regulatorProfileError = 'Failed to load regulator profile data';
+        this.handleApiError(error, 'Failed to load regulator profile data');
+      }
+    } finally {
+      this.regulatorProfileLoading = false;
+      this.cdr.detectChanges();
+    }
+  }
+
 
 
 
@@ -339,27 +463,29 @@ export class CompanyProfileComponent implements OnInit {
 
 
   async createProfile() {
-    console.log('🔍 Form validation status:', this.createForm.valid);
-    console.log('🔍 Form errors:', this.createForm.errors);
-    console.log('🔍 Form value:', this.createForm.value);
-    
     if (this.createForm.invalid) {
-      console.log('❌ Form is invalid. Errors:', this.createForm.errors);
       this.showError('Please fill in all required fields');
       return;
     }
 
     try {
       this.isLoading = true;
+      this.clearMessages();
+      
+      const formData = this.createForm.value;
+      
+      // 🔍 LOGGING: Show the private key being used for creation
+      console.log('🚀 CREATE PROFILE - Using private key:', formData.private_key);
+      console.log('🚀 CREATE PROFILE - Private key length:', formData.private_key.length);
+      console.log('🚀 CREATE PROFILE - Private key (first 10 chars):', formData.private_key.substring(0, 10) + '...');
+      
+      console.log('🚀 Creating profile with data:', this.createForm.value);
+      
       const profileData = {
         profile_data: this.createForm.value,
         timestamp: new Date().toISOString()
       };
-      
-      console.log('🚀 Sending profile data to backend:', profileData);
-      console.log('📡 API URL:', `${this.API_BASE_URL}/blockchain/store`);
-      
-      // API call to POST /blockchain/store
+
       const response = await this.http.post<ProfileResponse>(
         `${this.API_BASE_URL}/blockchain/store`,
         profileData
@@ -369,6 +495,14 @@ export class CompanyProfileComponent implements OnInit {
 
       if (response) {
         this.createdProfileData = response;
+        
+        // 🔍 LOGGING: Show what private key the backend returned
+        console.log('🔐 BACKEND RETURNED PRIVATE KEY:', response.private_key);
+        console.log('🔐 BACKEND RETURNED PRIVATE KEY LENGTH:', response.private_key.length);
+        console.log('🔐 BACKEND RETURNED PRIVATE KEY (first 10 chars):', response.private_key.substring(0, 10) + '...');
+        console.log('🔐 FILE ID:', response.file_id);
+        console.log('🔐 PUBLIC KEY:', response.public_key);
+        
         this.showCreateSuccess = true;
         this.showSuccess('Profile created successfully! Please securely save your private key.');
         
@@ -398,6 +532,12 @@ export class CompanyProfileComponent implements OnInit {
       this.updateProfileSuccess = '';
       
       const privateKey = this.privateKeyForm.get('private_key')?.value;
+      
+      // 🔍 LOGGING: Show the user's entered private key
+      console.log('🔐 USER ENTERED PRIVATE KEY:', privateKey);
+      console.log('🔐 Private key length:', privateKey.length);
+      console.log('🔐 Private key (first 10 chars):', privateKey.substring(0, 10) + '...');
+      
       console.log('🔐 Validating private key...');
 
       // Step 1: Get file_id and profile data using private key
@@ -408,6 +548,10 @@ export class CompanyProfileComponent implements OnInit {
 
       if (validationResponse && validationResponse.success) {
         console.log('✅ Private key validated successfully');
+        console.log('✅ File ID:', validationResponse.file_id);
+        console.log('✅ Public Key:', validationResponse.public_key);
+        console.log('✅ Version:', validationResponse.version);
+        
         this.fileId = validationResponse.file_id;
         this.publicKey = validationResponse.public_key;
         
@@ -475,6 +619,11 @@ export class CompanyProfileComponent implements OnInit {
       this.showError('Private key is required for updating profile.');
       return;
     }
+    
+    // 🔍 LOGGING: Show the private key being used for update
+    console.log('🔄 UPDATE PROFILE - Using private key:', privateKey);
+    console.log('🔄 UPDATE PROFILE - Private key length:', privateKey.length);
+    console.log('🔄 UPDATE PROFILE - File ID:', this.fileId);
 
     try {
       this.updateProfileLoading = true;
@@ -484,16 +633,20 @@ export class CompanyProfileComponent implements OnInit {
       console.log('🔄 Updating profile with file ID:', this.fileId);
       
       const updateData = {
-        file_id: this.fileId,
         profile_data: this.updateForm.value,
-        timestamp: new Date().toISOString(),
-        private_key: privateKey
+        timestamp: new Date().toISOString()
       };
 
-      // Send PUT request to update profile
+      // Create headers with private key
+      const headers = new HttpHeaders({
+        'Content-Type': 'application/json',
+        'private_key': privateKey
+      });
+
       const response = await this.http.put<ProfileUpdateResponse>(
         `${this.API_BASE_URL}/blockchain/profiles/${this.fileId}`,
-        updateData
+        updateData,
+        { headers }
       ).toPromise();
 
       if (response && response.success) {
@@ -502,7 +655,6 @@ export class CompanyProfileComponent implements OnInit {
         
         this.updateProfileSuccess = `Profile updated successfully! New version: ${response.new_version}, New File ID: ${response.new_file_id}`;
         
-        // Clear forms and reset state
         this.updateForm.reset();
         this.privateKeyForm.reset();
         this.clearFormArrays(this.updateForm);
@@ -511,7 +663,6 @@ export class CompanyProfileComponent implements OnInit {
         this.publicKey = '';
         this.profileUpdateResponse = null;
         
-        // Show success message with metadata
         this.showSuccess('Profile updated successfully! New version created and stored on blockchain.');
       } else {
         throw new Error('Update request failed');
@@ -539,6 +690,10 @@ export class CompanyProfileComponent implements OnInit {
   }
 
   private populateUpdateForm(profile: CompanyProfile) {
+    // Clear existing arrays first
+    this.clearFormArrays(this.updateForm);
+    
+    // Populate form with profile data
     this.updateForm.patchValue({
       company_name: profile.company_name,
       location: profile.location,
@@ -546,19 +701,52 @@ export class CompanyProfileComponent implements OnInit {
       size: profile.size,
       established: profile.established,
       revenue: profile.revenue,
-      competitive_position: profile.competitive_position
+      competitive_position: profile.competitive_position,
+      // Don't populate private_key - user must enter it
     });
-
-    // Clear and populate arrays
-    this.clearFormArrays(this.updateForm);
     
-    profile.market_segments.forEach(item => this.addArrayItem(this.updateMarketSegmentsArray, item));
-    profile.technology_focus.forEach(item => this.addArrayItem(this.updateTechnologyFocusArray, item));
-    profile.key_markets.forEach(item => this.addArrayItem(this.updateKeyMarketsArray, item));
-    profile.customer_segments.forEach(item => this.addArrayItem(this.updateCustomerSegmentsArray, item));
-    profile.partnerships.forEach(item => this.addArrayItem(this.updatePartnershipsArray, item));
-    profile.certifications.forEach(item => this.addArrayItem(this.updateCertificationsArray, item));
-    profile.sales_channels.forEach(item => this.addArrayItem(this.updateSalesChannelsArray, item));
+    // Populate arrays
+    if (profile.market_segments && profile.market_segments.length > 0) {
+      profile.market_segments.forEach(segment => {
+        this.updateMarketSegmentsArray.push(this.fb.control(segment));
+      });
+    }
+    
+    if (profile.technology_focus && profile.technology_focus.length > 0) {
+      profile.technology_focus.forEach(tech => {
+        this.updateTechnologyFocusArray.push(this.fb.control(tech));
+      });
+    }
+    
+    if (profile.key_markets && profile.key_markets.length > 0) {
+      profile.key_markets.forEach(market => {
+        this.updateKeyMarketsArray.push(this.fb.control(market));
+      });
+    }
+    
+    if (profile.customer_segments && profile.customer_segments.length > 0) {
+      profile.customer_segments.forEach(segment => {
+        this.updateCustomerSegmentsArray.push(this.fb.control(segment));
+      });
+    }
+    
+    if (profile.partnerships && profile.partnerships.length > 0) {
+      profile.partnerships.forEach(partner => {
+        this.updatePartnershipsArray.push(this.fb.control(partner));
+      });
+    }
+    
+    if (profile.certifications && profile.certifications.length > 0) {
+      profile.certifications.forEach(cert => {
+        this.updateCertificationsArray.push(this.fb.control(cert));
+      });
+    }
+    
+    if (profile.sales_channels && profile.sales_channels.length > 0) {
+      profile.sales_channels.forEach(channel => {
+        this.updateSalesChannelsArray.push(this.fb.control(channel));
+      });
+    }
   }
 
   private clearFormArrays(form: FormGroup) {

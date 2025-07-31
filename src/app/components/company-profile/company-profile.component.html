@@ -298,7 +298,29 @@
               </div>
             </div>
 
-                         <!-- Submit Button -->
+            <!-- Private Key -->
+            <div class="form-group">
+              <label for="private_key">Private Key *</label>
+              <div class="private-key-section">
+                <input 
+                  type="password" 
+                  id="private_key"
+                  formControlName="private_key"
+                  class="form-input"
+                  placeholder="Enter your private key">
+                <button type="button" class="btn btn-secondary" (click)="generatePrivateKey()" style="margin-left: 10px;">
+                  🔑 Generate Private Key
+                </button>
+              </div>
+              <div class="error-message" *ngIf="createForm.get('private_key')?.invalid && createForm.get('private_key')?.touched">
+                Private key is required
+              </div>
+              <div class="security-note">
+                <p><strong>Security Note:</strong> This private key will be used to authorize future profile updates. Store it securely!</p>
+              </div>
+            </div>
+
+            <!-- Submit Button -->
              <div class="form-actions">
                <button type="submit" class="btn btn-primary" [disabled]="createForm.invalid || isLoading">
                  <span *ngIf="!isLoading">🚀 Create Profile</span>
@@ -587,6 +609,21 @@
             <h2>🔐 Private Key Authentication</h2>
             <p>Enter your private key to access and edit your profile</p>
             
+            <!-- Security Warning -->
+            <div class="security-warning">
+              <div class="warning-icon">⚠️</div>
+              <div class="warning-content">
+                <h3>Security Notice</h3>
+                <p><strong>IMPORTANT:</strong> Only the original private key used during profile creation can authorize updates.</p>
+                <ul>
+                  <li>Enter the exact private key from your profile creation</li>
+                  <li>This key is required to validate your ownership</li>
+                  <li>If you've lost your private key, you cannot update this profile</li>
+                  <li>Consider creating a new profile if you cannot locate your private key</li>
+                </ul>
+              </div>
+            </div>
+            
             <form [formGroup]="privateKeyForm" (ngSubmit)="validatePrivateKey()" class="private-key-form">
               <div class="form-group">
                 <label for="private_key">Private Key *</label>
@@ -616,8 +653,19 @@
           <div class="form-card">
             <div class="profile-info">
               <h2>📝 Edit Profile: {{ currentProfile.company_name }}</h2>
-              <p>File ID: {{ fileId }}</p>
-              <p>Public Key: {{ publicKey }}</p>
+              <p><strong>File ID:</strong> {{ fileId }}</p>
+              <p><strong>Public Key:</strong> {{ publicKey }}</p>
+              <p><strong>Authorization:</strong> ✅ Private key validated</p>
+            </div>
+
+            <!-- Authorization Success Message -->
+            <div class="authorization-success">
+              <div class="success-icon">🔐</div>
+              <div class="success-content">
+                <h3>Profile Loaded Successfully</h3>
+                <p>Your private key has been validated. You can now edit the profile data below.</p>
+                <p><strong>Note:</strong> You must enter your private key again in the form below to authorize the update.</p>
+              </div>
             </div>
 
             <form [formGroup]="updateForm" (ngSubmit)="updateProfile()" class="update-form">
@@ -817,6 +865,8 @@
                 </div>
               </div>
 
+
+
               <!-- Submit Button -->
               <div class="form-actions">
                 <button type="submit" class="btn btn-primary" [disabled]="updateForm.invalid || updateProfileLoading">
@@ -839,31 +889,199 @@
           <p>Regulatory oversight and audit functionality for blockchain profiles</p>
         </div>
 
-        <!-- Placeholder Content -->
-        <div class="regulator-content">
-          <div class="placeholder-card">
-            <div class="placeholder-icon">🔍</div>
-            <h2>Regulator Dashboard</h2>
-            <p>This section is designed for regulatory oversight and audit functionality.</p>
-            <div class="placeholder-features">
-              <div class="feature-item">
-                <span class="feature-icon">📊</span>
-                <span>Profile Compliance Monitoring</span>
+        <!-- Loading State -->
+        <div *ngIf="regulatorProfileLoading" class="loading-section">
+          <div class="loading-spinner">⏳</div>
+          <p>Loading regulator profile data...</p>
+        </div>
+
+        <!-- Error State -->
+        <div *ngIf="regulatorProfileError" class="error-section">
+          <div class="error-message">
+            <span class="error-icon">❌</span>
+            <span>{{ regulatorProfileError }}</span>
+          </div>
+        </div>
+
+        <!-- No Profile Available -->
+        <div *ngIf="!regulatorProfileLoading && !regulatorProfileError && !regulatorProfileData" class="no-profile-section">
+          <div class="no-profile-card">
+            <div class="no-profile-icon">📋</div>
+            <h2>No Profile Available</h2>
+            <p>No company profiles are currently available for regulatory oversight.</p>
+            <p>Create a profile in the "Create Profile" tab to view it here.</p>
+          </div>
+        </div>
+
+        <!-- Regulator Profile Data -->
+        <div *ngIf="!regulatorProfileLoading && !regulatorProfileError && regulatorProfileData" class="regulator-content">
+          
+          <!-- Current Profile Section -->
+          <div class="current-profile-section">
+            <h2>📊 Current Profile Data</h2>
+            <div class="profile-card">
+              <div class="profile-header">
+                <h3>{{ regulatorProfileData.current_profile.company_name || 'Unnamed Company' }}</h3>
+                <span class="profile-status">Current Version</span>
               </div>
-              <div class="feature-item">
-                <span class="feature-icon">🔐</span>
-                <span>Audit Trail Verification</span>
-              </div>
-              <div class="feature-item">
-                <span class="feature-icon">📋</span>
-                <span>Regulatory Reporting</span>
-              </div>
-              <div class="feature-item">
-                <span class="feature-icon">⚖️</span>
-                <span>Compliance Enforcement</span>
+              
+              <div class="profile-details">
+                <div class="detail-row">
+                  <span class="label">Company Name:</span>
+                  <span class="value">{{ regulatorProfileData.current_profile.company_name || 'N/A' }}</span>
+                </div>
+                <div class="detail-row">
+                  <span class="label">Location:</span>
+                  <span class="value">{{ regulatorProfileData.current_profile.location || 'N/A' }}</span>
+                </div>
+                <div class="detail-row">
+                  <span class="label">Contact:</span>
+                  <span class="value">{{ regulatorProfileData.current_profile.contact || 'N/A' }}</span>
+                </div>
+                <div class="detail-row">
+                  <span class="label">Size:</span>
+                  <span class="value">{{ regulatorProfileData.current_profile.size || 'N/A' }}</span>
+                </div>
+                <div class="detail-row">
+                  <span class="label">Established:</span>
+                  <span class="value">{{ regulatorProfileData.current_profile.established || 'N/A' }}</span>
+                </div>
+                <div class="detail-row">
+                  <span class="label">Revenue:</span>
+                  <span class="value">{{ regulatorProfileData.current_profile.revenue || 'N/A' }}</span>
+                </div>
+                <div class="detail-row">
+                  <span class="label">Competitive Position:</span>
+                  <span class="value">{{ regulatorProfileData.current_profile.competitive_position || 'N/A' }}</span>
+                </div>
+                
+                <!-- Arrays -->
+                <div class="detail-row" *ngIf="regulatorProfileData.current_profile.market_segments?.length">
+                  <span class="label">Market Segments:</span>
+                  <span class="value">{{ regulatorProfileData.current_profile.market_segments.join(', ') }}</span>
+                </div>
+                <div class="detail-row" *ngIf="regulatorProfileData.current_profile.technology_focus?.length">
+                  <span class="label">Technology Focus:</span>
+                  <span class="value">{{ regulatorProfileData.current_profile.technology_focus.join(', ') }}</span>
+                </div>
+                <div class="detail-row" *ngIf="regulatorProfileData.current_profile.key_markets?.length">
+                  <span class="label">Key Markets:</span>
+                  <span class="value">{{ regulatorProfileData.current_profile.key_markets.join(', ') }}</span>
+                </div>
+                <div class="detail-row" *ngIf="regulatorProfileData.current_profile.customer_segments?.length">
+                  <span class="label">Customer Segments:</span>
+                  <span class="value">{{ regulatorProfileData.current_profile.customer_segments.join(', ') }}</span>
+                </div>
+                <div class="detail-row" *ngIf="regulatorProfileData.current_profile.partnerships?.length">
+                  <span class="label">Partnerships:</span>
+                  <span class="value">{{ regulatorProfileData.current_profile.partnerships.join(', ') }}</span>
+                </div>
+                <div class="detail-row" *ngIf="regulatorProfileData.current_profile.certifications?.length">
+                  <span class="label">Certifications:</span>
+                  <span class="value">{{ regulatorProfileData.current_profile.certifications.join(', ') }}</span>
+                </div>
+                <div class="detail-row" *ngIf="regulatorProfileData.current_profile.sales_channels?.length">
+                  <span class="label">Sales Channels:</span>
+                  <span class="value">{{ regulatorProfileData.current_profile.sales_channels.join(', ') }}</span>
+                </div>
               </div>
             </div>
-            <p class="placeholder-note">Future development will include comprehensive regulatory tools and audit capabilities.</p>
+          </div>
+
+          <!-- Profile History Section -->
+          <div class="profile-history-section">
+            <h2>📋 Complete Profile History</h2>
+            <div class="history-info">
+              <p>Total versions: {{ regulatorProfileData.history.length }}</p>
+            </div>
+            
+            <div class="history-timeline">
+              <div *ngFor="let version of regulatorProfileData.history; let i = index" class="history-item">
+                <div class="version-header">
+                  <h3>Version {{ version.version }}</h3>
+                  <span class="timestamp">{{ version.timestamp | date:'medium' }}</span>
+                </div>
+                
+                <div class="version-details">
+                  <div class="detail-row">
+                    <span class="label">Profile Hash:</span>
+                    <span class="value hash-value">{{ version.profile_hash }}</span>
+                  </div>
+                  <div class="detail-row">
+                    <span class="label">Public Key:</span>
+                    <span class="value hash-value">{{ version.public_key }}</span>
+                  </div>
+                  <div class="detail-row">
+                    <span class="label">Signature:</span>
+                    <span class="value hash-value">{{ version.signature }}</span>
+                  </div>
+                </div>
+                
+                <div class="version-profile-data">
+                  <h4>Profile Data (Version {{ version.version }})</h4>
+                  <div class="profile-details">
+                    <div class="detail-row">
+                      <span class="label">Company Name:</span>
+                      <span class="value">{{ version.profile_data.company_name || 'N/A' }}</span>
+                    </div>
+                    <div class="detail-row">
+                      <span class="label">Location:</span>
+                      <span class="value">{{ version.profile_data.location || 'N/A' }}</span>
+                    </div>
+                    <div class="detail-row">
+                      <span class="label">Contact:</span>
+                      <span class="value">{{ version.profile_data.contact || 'N/A' }}</span>
+                    </div>
+                    <div class="detail-row">
+                      <span class="label">Size:</span>
+                      <span class="value">{{ version.profile_data.size || 'N/A' }}</span>
+                    </div>
+                    <div class="detail-row">
+                      <span class="label">Established:</span>
+                      <span class="value">{{ version.profile_data.established || 'N/A' }}</span>
+                    </div>
+                    <div class="detail-row">
+                      <span class="label">Revenue:</span>
+                      <span class="value">{{ version.profile_data.revenue || 'N/A' }}</span>
+                    </div>
+                    <div class="detail-row">
+                      <span class="label">Competitive Position:</span>
+                      <span class="value">{{ version.profile_data.competitive_position || 'N/A' }}</span>
+                    </div>
+                    
+                    <!-- Arrays for each version -->
+                    <div class="detail-row" *ngIf="version.profile_data.market_segments?.length">
+                      <span class="label">Market Segments:</span>
+                      <span class="value">{{ version.profile_data.market_segments.join(', ') }}</span>
+                    </div>
+                    <div class="detail-row" *ngIf="version.profile_data.technology_focus?.length">
+                      <span class="label">Technology Focus:</span>
+                      <span class="value">{{ version.profile_data.technology_focus.join(', ') }}</span>
+                    </div>
+                    <div class="detail-row" *ngIf="version.profile_data.key_markets?.length">
+                      <span class="label">Key Markets:</span>
+                      <span class="value">{{ version.profile_data.key_markets.join(', ') }}</span>
+                    </div>
+                    <div class="detail-row" *ngIf="version.profile_data.customer_segments?.length">
+                      <span class="label">Customer Segments:</span>
+                      <span class="value">{{ version.profile_data.customer_segments.join(', ') }}</span>
+                    </div>
+                    <div class="detail-row" *ngIf="version.profile_data.partnerships?.length">
+                      <span class="label">Partnerships:</span>
+                      <span class="value">{{ version.profile_data.partnerships.join(', ') }}</span>
+                    </div>
+                    <div class="detail-row" *ngIf="version.profile_data.certifications?.length">
+                      <span class="label">Certifications:</span>
+                      <span class="value">{{ version.profile_data.certifications.join(', ') }}</span>
+                    </div>
+                    <div class="detail-row" *ngIf="version.profile_data.sales_channels?.length">
+                      <span class="label">Sales Channels:</span>
+                      <span class="value">{{ version.profile_data.sales_channels.join(', ') }}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
