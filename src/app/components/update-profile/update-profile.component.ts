@@ -1,197 +1,357 @@
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
+import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { CompanyProfile, BlockchainUpdateRequest, ProfileUpdateResponse } from '../../models/company-profile.interface';
+import { profileUpdateService } from '../../app.component';
 
 @Component({
   selector: 'app-update-profile',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule],
   template: `
-    <div class="tab-content">
-      <h2>Update Profile</h2>
-      <form (ngSubmit)="onSubmit()" #updateForm="ngForm">
-        <div class="form-group">
-          <label for="userId">User ID:</label>
-          <input type="text" id="userId" name="userId" [(ngModel)]="userId" required placeholder="Enter User ID to update" />
+    <div class="update-container">
+      <div class="update-header">
+        <h2>✏️ Update Company Profile</h2>
+        <p>Enter your private key to load and update your company profile</p>
+      </div>
+      
+      <!-- Private Key Input Section -->
+      <div class="private-key-section" *ngIf="!profileLoaded">
+        <h3>🔐 Authentication Required</h3>
+        <div class="private-key-warning">
+          <strong>⚠️ IMPORTANT:</strong> You need your private key to update your profile.
+          <br><br>
+          <strong>ℹ️ INFO:</strong> This private key was provided when you created your profile.
         </div>
         
-        <!-- Personal Information Section -->
-        <h3 class="form-section-title">👤 Personal Information</h3>
-        <div class="form-row">
-          <div class="form-group">
-            <label for="firstName">First Name:</label>
-            <input type="text" id="firstName" name="firstName" [(ngModel)]="updateData.firstName" placeholder="Update first name" />
-          </div>
-          <div class="form-group">
-            <label for="lastName">Last Name:</label>
-            <input type="text" id="lastName" name="lastName" [(ngModel)]="updateData.lastName" placeholder="Update last name" />
-          </div>
-        </div>
-        <div class="form-row">
-          <div class="form-group">
-            <label for="middleName">Middle Name:</label>
-            <input type="text" id="middleName" name="middleName" [(ngModel)]="updateData.middleName" placeholder="Update middle name" />
-          </div>
-          <div class="form-group">
-            <label for="dateOfBirth">Date of Birth:</label>
-            <input type="date" id="dateOfBirth" name="dateOfBirth" [(ngModel)]="updateData.dateOfBirth" />
-          </div>
-        </div>
-        <div class="form-row">
-          <div class="form-group">
-            <label for="gender">Gender:</label>
-            <select id="gender" name="gender" [(ngModel)]="updateData.gender">
-              <option value="">Select gender</option>
-              <option value="male">Male</option>
-              <option value="female">Female</option>
-              <option value="other">Other</option>
-              <option value="prefer-not-to-say">Prefer not to say</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label for="nationality">Nationality:</label>
-            <input type="text" id="nationality" name="nationality" [(ngModel)]="updateData.nationality" placeholder="Update nationality" />
-          </div>
-        </div>
-
-        <!-- Contact Information Section -->
-        <h3 class="form-section-title">📞 Contact Information</h3>
-        <div class="form-row">
-          <div class="form-group">
-            <label for="email">Email Address:</label>
-            <input type="email" id="email" name="email" [(ngModel)]="updateData.email" placeholder="Update email address" />
-          </div>
-          <div class="form-group">
-            <label for="phone">Phone Number:</label>
-            <input type="tel" id="phone" name="phone" [(ngModel)]="updateData.phone" placeholder="Update phone number" />
-          </div>
-        </div>
-        <div class="form-row">
-          <div class="form-group">
-            <label for="alternateEmail">Alternate Email:</label>
-            <input type="email" id="alternateEmail" name="alternateEmail" [(ngModel)]="updateData.alternateEmail" placeholder="Update alternate email" />
-          </div>
-          <div class="form-group">
-            <label for="alternatePhone">Alternate Phone:</label>
-            <input type="tel" id="alternatePhone" name="alternatePhone" [(ngModel)]="updateData.alternatePhone" placeholder="Update alternate phone" />
-          </div>
+        <div class="form-group">
+          <label for="private_key_input">Your Private Key:</label>
+          <input 
+            type="password" 
+            id="private_key_input" 
+            [(ngModel)]="privateKeyInput" 
+            placeholder="Enter your private key"
+            class="private-key-input"
+            required
+          />
         </div>
         
-        <!-- Address Information Section -->
-        <h3 class="form-section-title">🏠 Address Information</h3>
-        <div class="form-group">
-          <label for="streetAddress">Street Address:</label>
-          <input type="text" id="streetAddress" name="streetAddress" [(ngModel)]="updateData.streetAddress" placeholder="Update street address" />
+        <button 
+          type="button" 
+          class="btn" 
+          (click)="validateAndLoadProfile()" 
+          [disabled]="!privateKeyInput || validatingPrivateKey"
+        >
+          {{ validatingPrivateKey ? 'Loading Profile...' : 'Load Profile for Editing' }}
+        </button>
+        
+        <div class="loading" *ngIf="validatingPrivateKey">
+          <div class="spinner"></div>
+          <p>Validating private key and loading profile...</p>
         </div>
-        <div class="form-row">
-          <div class="form-group">
-            <label for="city">City:</label>
-            <input type="text" id="city" name="city" [(ngModel)]="updateData.city" placeholder="Update city" />
-          </div>
-          <div class="form-group">
-            <label for="state">State/Province:</label>
-            <input type="text" id="state" name="state" [(ngModel)]="updateData.state" placeholder="Update state/province" />
-          </div>
-        </div>
-        <div class="form-row">
-          <div class="form-group">
-            <label for="postalCode">Postal/Zip Code:</label>
-            <input type="text" id="postalCode" name="postalCode" [(ngModel)]="updateData.postalCode" placeholder="Update postal code" />
-          </div>
-          <div class="form-group">
-            <label for="country">Country:</label>
-            <input type="text" id="country" name="country" [(ngModel)]="updateData.country" placeholder="Update country" />
-          </div>
+      </div>
+      
+      <!-- Update Form - Only show after profile is loaded -->
+      <div class="update-form-section" *ngIf="profileLoaded">
+        <div class="form-header">
+          <h3>📝 Edit Company Profile</h3>
+          <p>Make changes to your profile and submit to update on the blockchain</p>
         </div>
 
-        <!-- Professional Information Section -->
-        <h3 class="form-section-title">💼 Professional Information</h3>
-        <div class="form-row">
-          <div class="form-group">
-            <label for="company">Company/Organization:</label>
-            <input type="text" id="company" name="company" [(ngModel)]="updateData.company" placeholder="Update company name" />
+        <form [formGroup]="profileForm" (ngSubmit)="onSubmit()">
+          <!-- Basic Company Information -->
+          <div class="form-section">
+            <h4 class="section-title">🏢 Basic Company Information</h4>
+            <div class="form-row">
+              <div class="form-group">
+                <label for="company_name">Company Name:</label>
+                <input type="text" id="company_name" formControlName="company_name" placeholder="Update company name" />
+              </div>
+              <div class="form-group">
+                <label for="location">Location:</label>
+                <input type="text" id="location" formControlName="location" placeholder="Update location" />
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label for="contact">Contact:</label>
+                <input type="text" id="contact" formControlName="contact" placeholder="Update contact" />
+              </div>
+              <div class="form-group">
+                <label for="size">Company Size:</label>
+                <select id="size" formControlName="size">
+                  <option value="">Select size</option>
+                  <option value="1-10 employees">1-10 employees</option>
+                  <option value="11-50 employees">11-50 employees</option>
+                  <option value="51-100 employees">51-100 employees</option>
+                  <option value="101-250 employees">101-250 employees</option>
+                  <option value="251-500 employees">251-500 employees</option>
+                  <option value="501-1000 employees">501-1000 employees</option>
+                  <option value="1000+ employees">1000+ employees</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label for="established">Year Established:</label>
+                <input type="text" id="established" formControlName="established" placeholder="Update year established" />
+              </div>
+              <div class="form-group">
+                <label for="revenue">Annual Revenue:</label>
+                <select id="revenue" formControlName="revenue">
+                  <option value="">Select revenue</option>
+                  <option value="Under $1M">Under $1M</option>
+                  <option value="$1M-$5M">$1M-$5M</option>
+                  <option value="$5M-$10M">$5M-$10M</option>
+                  <option value="$10M-$25M">$10M-$25M</option>
+                  <option value="$25M-$50M">$25M-$50M</option>
+                  <option value="$50M-$100M">$50M-$100M</option>
+                  <option value="$100M+">$100M+</option>
+                </select>
+              </div>
+            </div>
           </div>
-          <div class="form-group">
-            <label for="jobTitle">Job Title:</label>
-            <input type="text" id="jobTitle" name="jobTitle" [(ngModel)]="updateData.jobTitle" placeholder="Update job title" />
-          </div>
-        </div>
-        <div class="form-row">
-          <div class="form-group">
-            <label for="department">Department:</label>
-            <input type="text" id="department" name="department" [(ngModel)]="updateData.department" placeholder="Update department" />
-          </div>
-          <div class="form-group">
-            <label for="industry">Industry:</label>
-            <input type="text" id="industry" name="industry" [(ngModel)]="updateData.industry" placeholder="Update industry" />
-          </div>
-        </div>
-        <div class="form-row">
-          <div class="form-group">
-            <label for="workPhone">Work Phone:</label>
-            <input type="tel" id="workPhone" name="workPhone" [(ngModel)]="updateData.workPhone" placeholder="Update work phone" />
-          </div>
-          <div class="form-group">
-            <label for="workEmail">Work Email:</label>
-            <input type="email" id="workEmail" name="workEmail" [(ngModel)]="updateData.workEmail" placeholder="Update work email" />
-          </div>
-        </div>
 
-        <!-- Additional Information Section -->
-        <h3 class="form-section-title">📝 Additional Information</h3>
-        <div class="form-row">
-          <div class="form-group">
-            <label for="website">Website/Portfolio:</label>
-            <input type="url" id="website" name="website" [(ngModel)]="updateData.website" placeholder="Update website" />
-          </div>
-          <div class="form-group">
-            <label for="linkedIn">LinkedIn Profile:</label>
-            <input type="url" id="linkedIn" name="linkedIn" [(ngModel)]="updateData.linkedIn" placeholder="Update LinkedIn profile" />
-          </div>
-        </div>
-        <div class="form-group">
-          <label for="skills">Skills (comma-separated):</label>
-          <input type="text" id="skills" name="skills" [(ngModel)]="updateData.skills" placeholder="Update skills" />
-        </div>
-        <div class="form-group">
-          <label for="languages">Languages Spoken:</label>
-          <input type="text" id="languages" name="languages" [(ngModel)]="updateData.languages" placeholder="Update languages" />
-        </div>
-        <div class="form-group">
-          <label for="notes">Additional Notes:</label>
-          <textarea id="notes" name="notes" [(ngModel)]="updateData.notes" rows="3" placeholder="Update additional information or notes"></textarea>
-        </div>
+          <!-- Market & Technology Information -->
+          <div class="form-section">
+            <h4 class="section-title">🎯 Market & Technology Focus</h4>
+            <div class="form-group">
+              <label for="market_segments">Market Segments:</label>
+              <input type="text" id="market_segments" formControlName="market_segments" placeholder="e.g., Cybersecurity, IoT, Edge Computing (comma-separated)" />
+            </div>
 
-        <button type="submit" class="btn" [disabled]="loading">Update Comprehensive Profile</button>
-      </form>
+            <div class="form-group">
+              <label for="technology_focus">Technology Focus:</label>
+              <input type="text" id="technology_focus" formControlName="technology_focus" placeholder="e.g., Zero Trust Security, Edge AI, Device Management (comma-separated)" />
+            </div>
+
+            <div class="form-group">
+              <label for="key_markets">Key Markets:</label>
+              <input type="text" id="key_markets" formControlName="key_markets" placeholder="e.g., Europe, North America, Middle East (comma-separated)" />
+            </div>
+          </div>
+
+          <!-- Customer & Business Information -->
+          <div class="form-section">
+            <h4 class="section-title">👥 Customer & Business Information</h4>
+            <div class="form-group">
+              <label for="customer_segments">Customer Segments:</label>
+              <input type="text" id="customer_segments" formControlName="customer_segments" placeholder="e.g., Industrial, Government, Telecom (comma-separated)" />
+            </div>
+
+            <div class="form-group">
+              <label for="competitive_position">Competitive Position:</label>
+              <textarea id="competitive_position" formControlName="competitive_position" rows="3" placeholder="Update competitive position"></textarea>
+            </div>
+          </div>
+
+          <!-- Partnerships & Certifications -->
+          <div class="form-section">
+            <h4 class="section-title">🤝 Partnerships & Certifications</h4>
+            <div class="form-group">
+              <label for="partnerships">Partnerships:</label>
+              <input type="text" id="partnerships" formControlName="partnerships" placeholder="e.g., Siemens, Cisco, European Space Agency (comma-separated)" />
+            </div>
+
+            <div class="form-group">
+              <label for="certifications">Certifications:</label>
+              <input type="text" id="certifications" formControlName="certifications" placeholder="e.g., ISO 9001, TISAX, ENISA Compliant (comma-separated)" />
+            </div>
+          </div>
+
+          <!-- Sales Channels -->
+          <div class="form-section">
+            <h4 class="section-title">📈 Sales Channels</h4>
+            <div class="form-group">
+              <label for="sales_channels">Sales Channels:</label>
+              <input type="text" id="sales_channels" formControlName="sales_channels" placeholder="e.g., Resellers, Enterprise Sales, Global Integrators (comma-separated)" />
+            </div>
+          </div>
+
+          <!-- Profile Info Display -->
+          <div class="profile-info-display">
+            <h4 class="section-title">📋 Profile Information</h4>
+            <div class="info-grid">
+              <div class="info-item">
+                <span class="info-label">File ID:</span>
+                <span class="info-value">{{ currentFileId }}</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">Current Version:</span>
+                <span class="info-value">{{ currentVersion }}</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">Last Updated:</span>
+                <span class="info-value">{{ lastUpdated }}</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-actions">
+            <button type="button" class="btn-secondary" (click)="resetForm()">
+              🔄 Reset to Original
+            </button>
+            <button type="submit" class="btn-primary" [disabled]="loading || !profileForm.valid">
+              {{ loading ? 'Updating Profile...' : 'Update Company Profile' }}
+            </button>
+          </div>
+        </form>
+      </div>
       
       <div class="loading" *ngIf="loading">
         <div class="spinner"></div>
-        <p>Updating profile...</p>
+        <p>Updating profile on blockchain...</p>
       </div>
       
       <div [class]="'result ' + (isSuccess ? 'success' : 'error')" *ngIf="resultMessage" [innerHTML]="resultMessage"></div>
     </div>
   `,
   styles: [`
-    .tab-content {
+    .update-container {
       padding: 40px;
+      background: white;
+      min-height: 100vh;
     }
 
-    .form-section-title {
-      color: #4facfe;
+    .update-header {
+      text-align: center;
+      margin-bottom: 40px;
+      padding: 30px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      border-radius: 15px;
+      color: white;
+    }
+
+    .update-header h2 {
+      margin: 0 0 10px 0;
+      font-size: 2rem;
+      font-weight: 700;
+    }
+
+    .update-header p {
+      margin: 0;
+      opacity: 0.9;
+      font-size: 1.1rem;
+    }
+
+    .private-key-section {
+      background: linear-gradient(135deg, #ff6b6b 0%, #ee5a52 100%);
+      border: 2px solid #ff4757;
+      border-radius: 12px;
+      padding: 25px;
+      margin-bottom: 30px;
+      box-shadow: 0 8px 25px rgba(255, 107, 107, 0.3);
+    }
+
+    .private-key-section h3 {
+      margin: 0 0 15px 0;
+      color: white;
+      font-size: 1.4rem;
+    }
+
+    .private-key-warning {
+      background: rgba(255, 255, 255, 0.1);
+      padding: 15px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      border-left: 4px solid #ff4757;
+      color: white;
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    .form-group label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 600;
+      color: white;
+    }
+
+    .private-key-input {
+      width: 100%;
+      padding: 12px 15px;
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      border-radius: 8px;
+      font-size: 16px;
+      background: rgba(255, 255, 255, 0.1);
+      color: white;
+      font-family: 'Courier New', monospace;
+    }
+
+    .private-key-input::placeholder {
+      color: rgba(255, 255, 255, 0.7);
+    }
+
+    .private-key-input:focus {
+      outline: none;
+      border-color: rgba(255, 255, 255, 0.8);
+      box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.1);
+    }
+
+    .btn {
+      background: rgba(255, 255, 255, 0.2);
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      color: white;
+      padding: 12px 30px;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .btn:hover {
+      background: rgba(255, 255, 255, 0.3);
+      transform: translateY(-2px);
+    }
+
+    .btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    .update-form-section {
+      background: #f8f9fa;
+      border-radius: 12px;
+      padding: 30px;
+      margin-bottom: 30px;
+    }
+
+    .form-header {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+
+    .form-header h3 {
+      margin: 0 0 10px 0;
+      color: #333;
+      font-size: 1.5rem;
+      font-weight: 600;
+    }
+
+    .form-header p {
+      margin: 0;
+      color: #666;
+    }
+
+    .form-section {
+      background: white;
+      border-radius: 8px;
+      padding: 25px;
+      margin-bottom: 25px;
+      border: 1px solid #e9ecef;
+    }
+
+    .section-title {
+      color: #667eea;
       font-size: 1.2rem;
       font-weight: 600;
-      margin: 30px 0 20px 0;
-      padding: 10px 0;
-      border-bottom: 2px solid #e8f4fd;
+      margin: 0 0 20px 0;
       display: flex;
       align-items: center;
       gap: 10px;
-    }
-
-    .form-section-title:first-of-type {
-      margin-top: 20px;
     }
 
     .form-row {
@@ -228,29 +388,90 @@ import { FormsModule } from '@angular/forms';
     .form-group textarea:focus,
     .form-group select:focus {
       outline: none;
-      border-color: #4facfe;
-      box-shadow: 0 0 0 3px rgba(79, 172, 254, 0.1);
+      border-color: #667eea;
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
     }
 
-    .btn {
-      background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+    .profile-info-display {
+      background: linear-gradient(135deg, #e3f2fd, #bbdefb);
+      border: 1px solid #2196f3;
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 25px;
+    }
+
+    .info-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 15px;
+    }
+
+    .info-item {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .info-label {
+      font-weight: 600;
+      color: #1976d2;
+      font-size: 0.9rem;
+      margin-bottom: 5px;
+    }
+
+    .info-value {
+      color: #333;
+      font-size: 1rem;
+      padding: 8px 12px;
+      background: white;
+      border: 1px solid #e1e5e9;
+      border-radius: 4px;
+      font-family: 'Courier New', monospace;
+    }
+
+    .form-actions {
+      display: flex;
+      gap: 15px;
+      justify-content: center;
+      margin-top: 30px;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
       color: white;
       border: none;
-      padding: 12px 30px;
+      padding: 15px 30px;
       border-radius: 8px;
       font-size: 1rem;
       font-weight: 600;
       cursor: pointer;
-      transition: transform 0.2s ease;
+      transition: all 0.3s ease;
     }
 
-    .btn:hover {
+    .btn-primary:hover {
       transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
     }
 
-    .btn:disabled {
+    .btn-primary:disabled {
       opacity: 0.6;
       cursor: not-allowed;
+    }
+
+    .btn-secondary {
+      background: #6c757d;
+      color: white;
+      border: none;
+      padding: 15px 30px;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .btn-secondary:hover {
+      background: #5a6268;
+      transform: translateY(-2px);
     }
 
     .loading {
@@ -260,7 +481,7 @@ import { FormsModule } from '@angular/forms';
 
     .spinner {
       border: 4px solid #f3f3f3;
-      border-top: 4px solid #4facfe;
+      border-top: 4px solid #667eea;
       border-radius: 50%;
       width: 40px;
       height: 40px;
@@ -309,181 +530,280 @@ import { FormsModule } from '@angular/forms';
       box-shadow: 0 8px 25px rgba(255, 107, 107, 0.3);
     }
 
-    .profile-info {
-      margin: 20px 0;
-      background: rgba(255, 255, 255, 0.1);
-      padding: 15px;
-      border-radius: 8px;
-      backdrop-filter: blur(10px);
-    }
-
-    .info-row {
-      display: flex;
-      justify-content: space-between;
-      margin-bottom: 8px;
-      padding: 5px 0;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    }
-
-    .info-row:last-child {
-      border-bottom: none;
-      margin-bottom: 0;
-    }
-
-    .label {
-      font-weight: 600;
-      opacity: 0.9;
-    }
-
-    .value {
-      font-weight: 400;
-      opacity: 0.8;
-    }
-
-    .verification-section {
-      margin-top: 20px;
-      background: rgba(255, 255, 255, 0.1);
-      padding: 15px;
-      border-radius: 8px;
-      backdrop-filter: blur(10px);
-    }
-
-    .link-container {
-      display: flex;
-      gap: 10px;
-      margin: 10px 0;
-    }
-
-    .link-input {
-      flex: 1;
-      padding: 10px;
-      border: 1px solid rgba(255, 255, 255, 0.3);
-      border-radius: 6px;
-      background: rgba(255, 255, 255, 0.1);
-      color: white;
-      font-size: 14px;
-    }
-
-    .link-input::placeholder {
-      color: rgba(255, 255, 255, 0.7);
-    }
-
-    .copy-btn {
-      padding: 10px 15px;
-      background: rgba(255, 255, 255, 0.2);
-      border: 1px solid rgba(255, 255, 255, 0.3);
-      border-radius: 6px;
-      color: white;
-      cursor: pointer;
-      transition: all 0.3s ease;
-      font-size: 14px;
-    }
-
-    .copy-btn:hover {
-      background: rgba(255, 255, 255, 0.3);
-      transform: translateY(-1px);
-    }
-
-    .link-note {
-      font-size: 14px;
-      opacity: 0.8;
-      margin: 10px 0 0 0;
-    }
-
     @media (max-width: 768px) {
+      .update-container {
+        padding: 20px;
+      }
+
       .form-row {
         grid-template-columns: 1fr;
         gap: 15px;
+      }
+
+      .form-actions {
+        flex-direction: column;
+        align-items: center;
+      }
+
+      .update-header h2 {
+        font-size: 1.6rem;
+      }
+
+      .update-header p {
+        font-size: 1rem;
       }
     }
   `]
 })
 export class UpdateProfileComponent {
-  userId: string = '';
-  updateData: any = {
-    firstName: '',
-    lastName: '',
-    middleName: '',
-    dateOfBirth: '',
-    gender: '',
-    nationality: '',
-    email: '',
-    phone: '',
-    alternateEmail: '',
-    alternatePhone: '',
-    streetAddress: '',
-    city: '',
-    state: '',
-    postalCode: '',
-    country: '',
-    company: '',
-    jobTitle: '',
-    department: '',
-    industry: '',
-    workPhone: '',
-    workEmail: '',
-    website: '',
-    linkedIn: '',
-    skills: '',
-    languages: '',
-    notes: ''
-  };
-
+  profileForm: FormGroup;
   loading: boolean = false;
+  validatingPrivateKey: boolean = false;
   resultMessage: string = '';
   isSuccess: boolean = false;
+  
+  // Private key handling
+  privateKeyInput: string = '';
+  validatedPrivateKey: string = '';
+  profileLoaded: boolean = false;
+  
+  // Profile data
+  currentFileId: string = '';
+  currentVersion: number = 0;
+  lastUpdated: string = '';
+  originalProfileData: CompanyProfile | null = null;
+
+  constructor(private fb: FormBuilder) {
+    this.profileForm = this.fb.group({
+      company_name: [''],
+      location: [''],
+      contact: [''],
+      size: [''],
+      established: [''],
+      revenue: [''],
+      market_segments: [''],
+      technology_focus: [''],
+      key_markets: [''],
+      customer_segments: [''],
+      competitive_position: [''],
+      partnerships: [''],
+      certifications: [''],
+      sales_channels: ['']
+    });
+  }
+
+  async validateAndLoadProfile() {
+    if (!this.privateKeyInput.trim()) {
+      this.resultMessage = `
+        <div class="error-card">
+          <h3>❌ Validation Error</h3>
+          <p><strong>Details:</strong> Please enter your private key.</p>
+        </div>
+      `;
+      this.isSuccess = false;
+      return;
+    }
+
+    this.validatingPrivateKey = true;
+    this.resultMessage = '';
+
+    try {
+      // First, we need to get the file_id from the private key
+      // In a real implementation, the backend would have an endpoint to map private_key to file_id
+      // For now, we'll simulate this with a demo endpoint or use a known file_id
+      
+      // Simulate getting file_id from private key
+      const fileId = await this.getFileIdFromPrivateKey(this.privateKeyInput);
+      
+      if (!fileId) {
+        throw new Error('Invalid private key. No profile found for this key.');
+      }
+
+      // Now fetch the profile data using the file_id
+      const response = await fetch(`http://localhost:3000/blockchain/profiles/${fileId}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
+
+      const result = await response.json();
+      
+      if (response.ok && result.success) {
+        // Store the validated private key
+        this.validatedPrivateKey = this.privateKeyInput;
+        this.privateKeyInput = ''; // Clear for security
+        
+        // Store profile data
+        this.originalProfileData = result.profile_data;
+        this.currentFileId = result.metadata.file_id;
+        this.currentVersion = result.metadata.version;
+        this.lastUpdated = new Date(result.metadata.updated_at).toLocaleString();
+        
+        // Populate form with existing data
+        this.populateFormWithProfileData(result.profile_data);
+        
+        this.profileLoaded = true;
+        
+        this.resultMessage = `
+          <div class="success-card">
+            <h3>✅ Profile Loaded Successfully</h3>
+            <p>Your profile has been loaded and is ready for editing. Make your changes and click "Update Company Profile" to save.</p>
+          </div>
+        `;
+        this.isSuccess = true;
+      } else {
+        throw new Error(result.error || 'Failed to load profile');
+      }
+    } catch (error: any) {
+      this.resultMessage = `
+        <div class="error-card">
+          <h3>❌ Profile Loading Failed</h3>
+          <p><strong>Details:</strong> ${error.message}</p>
+          <p><strong>Possible reasons:</strong></p>
+          <ul>
+            <li>Invalid private key</li>
+            <li>Profile not found</li>
+            <li>Backend service unavailable</li>
+          </ul>
+        </div>
+      `;
+      this.isSuccess = false;
+    } finally {
+      this.validatingPrivateKey = false;
+    }
+  }
+
+  private async getFileIdFromPrivateKey(privateKey: string): Promise<string> {
+    // Call the backend endpoint to get file_id from private key
+    const response = await fetch('http://localhost:3000/blockchain/file-id', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        private_key: privateKey
+      })
+    });
+
+    const result = await response.json();
+    
+    if (response.ok && result.success) {
+      return result.file_id;
+    } else {
+      throw new Error(result.error || 'Failed to get file ID from private key');
+    }
+  }
+
+  private populateFormWithProfileData(profileData: CompanyProfile) {
+    // Convert arrays to comma-separated strings for form display
+    const formData = {
+      company_name: profileData.company_name || '',
+      location: profileData.location || '',
+      contact: profileData.contact || '',
+      size: profileData.size || '',
+      established: profileData.established || '',
+      revenue: profileData.revenue || '',
+      market_segments: Array.isArray(profileData.market_segments) ? profileData.market_segments.join(', ') : profileData.market_segments || '',
+      technology_focus: Array.isArray(profileData.technology_focus) ? profileData.technology_focus.join(', ') : profileData.technology_focus || '',
+      key_markets: Array.isArray(profileData.key_markets) ? profileData.key_markets.join(', ') : profileData.key_markets || '',
+      customer_segments: Array.isArray(profileData.customer_segments) ? profileData.customer_segments.join(', ') : profileData.customer_segments || '',
+      competitive_position: profileData.competitive_position || '',
+      partnerships: Array.isArray(profileData.partnerships) ? profileData.partnerships.join(', ') : profileData.partnerships || '',
+      certifications: Array.isArray(profileData.certifications) ? profileData.certifications.join(', ') : profileData.certifications || '',
+      sales_channels: Array.isArray(profileData.sales_channels) ? profileData.sales_channels.join(', ') : profileData.sales_channels || ''
+    };
+
+    this.profileForm.patchValue(formData);
+  }
+
+  resetForm() {
+    if (this.originalProfileData) {
+      this.populateFormWithProfileData(this.originalProfileData);
+    }
+  }
 
   async onSubmit() {
+    if (this.profileForm.invalid || !this.validatedPrivateKey) {
+      this.resultMessage = `
+        <div class="error-card">
+          <h3>❌ Validation Error</h3>
+          <p><strong>Details:</strong> Form must be valid and private key must be provided.</p>
+        </div>
+      `;
+      this.isSuccess = false;
+      return;
+    }
+
     this.loading = true;
     this.resultMessage = '';
 
-    // Validate User ID first
-    if (!this.userId.trim()) {
-      this.resultMessage = `
-        <div class="error-card">
-          <h3>❌ Validation Error</h3>
-          <p><strong>Details:</strong> User ID is required. Please enter a valid User ID.</p>
-          <div style="margin-top: 15px; padding: 10px; background: #f5f5f5; border-radius: 4px; font-size: 12px;">
-            <strong>Tip:</strong> You can get a User ID by creating a profile first or reading an existing profile.
-          </div>
-        </div>
-      `;
-      this.isSuccess = false;
-      this.loading = false;
-      return;
-    }
-
-    // Remove empty fields
-    const cleanUpdateData = { ...this.updateData };
-    Object.keys(cleanUpdateData).forEach(key => {
-      if (!cleanUpdateData[key] || cleanUpdateData[key].trim() === '') {
-        delete cleanUpdateData[key];
-      }
-    });
-
-    // Check if at least one field has data
-    if (Object.keys(cleanUpdateData).length === 0) {
-      this.resultMessage = `
-        <div class="error-card">
-          <h3>❌ Validation Error</h3>
-          <p><strong>Details:</strong> Please provide at least one field to update.</p>
-          <div style="margin-top: 15px; padding: 10px; background: #f5f5f5; border-radius: 4px; font-size: 12px;">
-            <strong>Tip:</strong> Fill in any field you want to update and try again.
-          </div>
-        </div>
-      `;
-      this.isSuccess = false;
-      this.loading = false;
-      return;
-    }
-
     try {
-      const response = await fetch(`http://localhost:3000/api/v1/blockchain/profile/${this.userId}`, {
-        method: 'PATCH',
+      // Prepare profile data
+      const profileData: CompanyProfile = this.profileForm.value;
+      
+      // Convert comma-separated strings to arrays for backend
+      profileData.market_segments = profileData.market_segments ? 
+        (typeof profileData.market_segments === 'string' ? 
+          profileData.market_segments.split(',').map((item: string) => item.trim()).filter((item: string) => item !== '') : 
+          profileData.market_segments) : [];
+      profileData.technology_focus = profileData.technology_focus ? 
+        (typeof profileData.technology_focus === 'string' ? 
+          profileData.technology_focus.split(',').map((item: string) => item.trim()).filter((item: string) => item !== '') : 
+          profileData.technology_focus) : [];
+      profileData.key_markets = profileData.key_markets ? 
+        (typeof profileData.key_markets === 'string' ? 
+          profileData.key_markets.split(',').map((item: string) => item.trim()).filter((item: string) => item !== '') : 
+          profileData.key_markets) : [];
+      profileData.customer_segments = profileData.customer_segments ? 
+        (typeof profileData.customer_segments === 'string' ? 
+          profileData.customer_segments.split(',').map((item: string) => item.trim()).filter((item: string) => item !== '') : 
+          profileData.customer_segments) : [];
+      profileData.partnerships = profileData.partnerships ? 
+        (typeof profileData.partnerships === 'string' ? 
+          profileData.partnerships.split(',').map((item: string) => item.trim()).filter((item: string) => item !== '') : 
+          profileData.partnerships) : [];
+      profileData.certifications = profileData.certifications ? 
+        (typeof profileData.certifications === 'string' ? 
+          profileData.certifications.split(',').map((item: string) => item.trim()).filter((item: string) => item !== '') : 
+          profileData.certifications) : [];
+      profileData.sales_channels = profileData.sales_channels ? 
+        (typeof profileData.sales_channels === 'string' ? 
+          profileData.sales_channels.split(',').map((item: string) => item.trim()).filter((item: string) => item !== '') : 
+          profileData.sales_channels) : [];
+
+      // Remove empty fields
+      Object.keys(profileData).forEach(key => {
+        if (profileData[key as keyof CompanyProfile] === '' || 
+            (Array.isArray(profileData[key as keyof CompanyProfile]) && 
+             (profileData[key as keyof CompanyProfile] as string[]).length === 0)) {
+          delete profileData[key as keyof CompanyProfile];
+        }
+      });
+
+      // Check if at least one field has data
+      if (Object.keys(profileData).length === 0) {
+        this.resultMessage = `
+          <div class="error-card">
+            <h3>❌ Validation Error</h3>
+            <p><strong>Details:</strong> Please provide at least one field to update.</p>
+          </div>
+        `;
+        this.isSuccess = false;
+        this.loading = false;
+        return;
+      }
+
+      const response = await fetch(`http://localhost:3000/blockchain/profiles/${this.currentFileId}`, {
+        method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ data: cleanUpdateData })
+        body: JSON.stringify({
+          profile_data: profileData,
+          timestamp: new Date().toISOString(),
+          private_key: this.validatedPrivateKey
+        })
       });
 
       const result = await response.json();
@@ -491,111 +811,68 @@ export class UpdateProfileComponent {
       if (response.ok && result.success) {
         this.resultMessage = `
           <div class="success-card">
-            <h3>✅ Comprehensive Profile Updated Successfully!</h3>
+            <h3>✅ Company Profile Updated Successfully!</h3>
             <div class="profile-info">
               <div class="info-row">
-                <span class="label">Profile ID:</span>
-                <span class="value">${result.profile.id}</span>
+                <span class="label">New File ID:</span>
+                <span class="value">${result.new_file_id}</span>
               </div>
               <div class="info-row">
-                <span class="label">User ID:</span>
-                <span class="value">${result.profile.userId}</span>
-              </div>
-              <div class="info-row">
-                <span class="label">Created:</span>
-                <span class="value">${new Date(result.profile.createdAt).toLocaleString()}</span>
+                <span class="label">Version:</span>
+                <span class="value">${result.new_version}</span>
               </div>
               <div class="info-row">
                 <span class="label">Updated:</span>
-                <span class="value">${new Date(result.profile.updatedAt).toLocaleString()}</span>
+                <span class="value">${new Date(result.timestamp).toLocaleString()}</span>
+              </div>
+              <div class="info-row">
+                <span class="label">Fields Changed:</span>
+                <span class="value">${result.diffs.length}</span>
               </div>
             </div>
             
-            <div class="profile-data">
-              <h4>📋 Updated Profile Data</h4>
-              <div class="data-container">
-                ${Object.entries(result.profile.data).map(([key, value]) => `
-                  <div class="data-row">
-                    <span class="data-label">${this.formatFieldName(key)}:</span>
-                    <span class="data-value">${value}</span>
-                  </div>
-                `).join('')}
-              </div>
-            </div>
-            
+            ${result.diffs.length > 0 ? `
             <div class="verification-section">
-              <h4>🔗 Updated Verification Link</h4>
-              <div class="link-container">
-                <input type="text" value="${result.verificationLink}" readonly class="link-input">
-                <button (click)="copyToClipboard('${result.verificationLink}')" class="copy-btn">📋 Copy</button>
-              </div>
+              <h4>📋 Changes Made</h4>
+              ${result.diffs.map((diff: any) => `
+                <div style="margin: 10px 0; padding: 10px; background: rgba(255,255,255,0.1); border-radius: 4px;">
+                  <strong>${diff.field_name}:</strong> 
+                  <span style="color: #ff6b6b;">${diff.old_value || 'Empty'}</span> 
+                  → 
+                  <span style="color: #4CAF50;">${diff.new_value}</span>
+                </div>
+              `).join('')}
             </div>
+            ` : ''}
           </div>
         `;
         this.isSuccess = true;
         
-        // Reset form
-        this.updateData = {
-          firstName: '', lastName: '', middleName: '', dateOfBirth: '', gender: '', nationality: '',
-          email: '', phone: '', alternateEmail: '', alternatePhone: '', streetAddress: '', city: '',
-          state: '', postalCode: '', country: '', company: '', jobTitle: '', department: '',
-          industry: '', workPhone: '', workEmail: '', website: '', linkedIn: '', skills: '', languages: '', notes: ''
-        };
-      } else {
-        // Handle different types of errors
-        let errorMessage = 'Failed to update profile';
-        if (result.message) {
-          errorMessage = result.message;
-        } else if (result.error) {
-          errorMessage = result.error;
-        } else if (!response.ok) {
-          errorMessage = `Server error: ${response.status} ${response.statusText}`;
-        }
+        // Update current version and file ID
+        this.currentVersion = result.new_version;
+        this.currentFileId = result.new_file_id;
+        this.lastUpdated = new Date(result.timestamp).toLocaleString();
         
+        // Clear private key for security
+        this.validatedPrivateKey = '';
+        this.profileLoaded = false;
+
+        // Notify the main app component that the profile has been updated
+        profileUpdateService.notifyUpdate();
+      } else {
+        const errorMessage = result.error || 'Failed to update profile';
         throw new Error(errorMessage);
       }
     } catch (error: any) {
-      let errorDetails = error.message;
-      if (error.message === 'Failed to fetch') {
-        errorDetails = 'Unable to connect to server. Please check your connection and try again.';
-      } else if (error.message.includes('400')) {
-        errorDetails = 'Invalid request data. Please check all fields and try again.';
-      } else if (error.message.includes('404')) {
-        errorDetails = 'Profile not found. Please verify the User ID is correct.';
-      } else if (error.message.includes('500')) {
-        errorDetails = 'Server error. Please try again later.';
-      }
-      
       this.resultMessage = `
         <div class="error-card">
           <h3>❌ Error Updating Profile</h3>
-          <p><strong>Details:</strong> ${errorDetails}</p>
-          <div style="margin-top: 15px; padding: 10px; background: #f5f5f5; border-radius: 4px; font-size: 12px;">
-            <strong>Debug Info:</strong><br>
-            User ID: ${this.userId || 'Not provided'}<br>
-            Fields to update: ${Object.keys(cleanUpdateData).length > 0 ? Object.keys(cleanUpdateData).join(', ') : 'None'}
-          </div>
+          <p><strong>Details:</strong> ${error.message}</p>
         </div>
       `;
       this.isSuccess = false;
     } finally {
       this.loading = false;
     }
-  }
-
-  formatFieldName(fieldName: string): string {
-    return fieldName
-      .replace(/([A-Z])/g, ' $1')
-      .replace(/^./, str => str.toUpperCase())
-      .replace(/([a-z])([A-Z])/g, '$1 $2')
-      .trim();
-  }
-
-  copyToClipboard(text: string) {
-    navigator.clipboard.writeText(text).then(() => {
-      console.log('Copied to clipboard');
-    }).catch(err => {
-      console.error('Failed to copy: ', err);
-    });
   }
 } 

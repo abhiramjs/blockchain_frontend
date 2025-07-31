@@ -1,5 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { ActivatedRoute } from '@angular/router';
+import { VerificationResponse } from '../../models/company-profile.interface';
 
 @Component({
   selector: 'app-verify-profile',
@@ -7,170 +9,33 @@ import { CommonModule } from '@angular/common';
   imports: [CommonModule],
   template: `
     <div class="tab-content">
-      <div class="professional-header">
-        <div class="company-logo">
-          <div class="logo-placeholder">🏢</div>
-        </div>
-        <div class="company-info">
-          <h1 class="company-name">Blockchain Verification Portal</h1>
-          <p class="company-tagline">Enterprise Identity Verification System</p>
-        </div>
+      <h2>Verify Company Profile</h2>
+      
+      <div class="loading" *ngIf="loading">
+        <div class="spinner"></div>
+        <p>Verifying profile on blockchain...</p>
       </div>
       
-      <div id="verification-content">
-        <div class="loading" *ngIf="loading">
-          <div class="spinner"></div>
-          <p>Verifying profile credentials...</p>
+      <div [class]="'result ' + (isSuccess ? 'success' : 'error')" *ngIf="resultMessage" [innerHTML]="resultMessage"></div>
+      
+      <div class="verification-info" *ngIf="!loading && !resultMessage">
+        <div class="info-card">
+          <h3>🔍 Profile Verification</h3>
+          <p>This page verifies company profiles stored on the blockchain using file ID and public key parameters.</p>
+          <div class="url-info">
+            <strong>URL Parameters:</strong>
+            <ul>
+              <li><code>file_id</code> - The blockchain file identifier</li>
+              <li><code>pubkey</code> - The public key for verification</li>
+            </ul>
+          </div>
         </div>
-        
-        <div *ngIf="!loading && verificationResult" [innerHTML]="verificationResult"></div>
       </div>
     </div>
   `,
   styles: [`
     .tab-content {
-      padding: 0;
-    }
-
-    .professional-header {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
-      padding: 30px 20px;
-      border-radius: 12px 12px 0 0;
-      display: flex;
-      align-items: center;
-      gap: 20px;
-      margin-bottom: 0;
-    }
-
-    .company-logo .logo-placeholder {
-      width: 60px;
-      height: 60px;
-      background: rgba(255, 255, 255, 0.2);
-      border-radius: 12px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 28px;
-      border: 2px solid rgba(255, 255, 255, 0.3);
-    }
-
-    .company-info .company-name {
-      margin: 0;
-      font-size: 28px;
-      font-weight: 700;
-      text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-    }
-
-    .company-info .company-tagline {
-      margin: 5px 0 0 0;
-      font-size: 16px;
-      opacity: 0.9;
-      font-weight: 300;
-    }
-
-    .verification-professional {
-      background: white;
-      border-radius: 0 0 12px 12px;
-      padding: 30px;
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
-    }
-
-    .verification-header {
-      text-align: center;
-      margin-bottom: 30px;
-      padding-bottom: 20px;
-      border-bottom: 2px solid #f0f0f0;
-    }
-
-    .verification-status {
-      display: inline-flex;
-      align-items: center;
-      gap: 10px;
-      background: linear-gradient(135deg, #4CAF50, #45a049);
-      color: white;
-      padding: 12px 24px;
-      border-radius: 30px;
-      font-weight: 600;
-      margin-bottom: 15px;
-      box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
-    }
-
-    .verification-details {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-      gap: 25px;
-      margin-top: 25px;
-    }
-
-    .detail-card {
-      background: #f8f9fa;
-      border-radius: 12px;
-      padding: 20px;
-      border-left: 4px solid #667eea;
-    }
-
-    .detail-card h4 {
-      margin: 0 0 15px 0;
-      color: #333;
-      font-size: 18px;
-      font-weight: 600;
-    }
-
-    .detail-grid {
-      display: grid;
-      gap: 12px;
-    }
-
-    .detail-item {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 8px 0;
-      border-bottom: 1px solid #e9ecef;
-    }
-
-    .detail-item:last-child {
-      border-bottom: none;
-    }
-
-    .detail-label {
-      font-weight: 600;
-      color: #666;
-      font-size: 14px;
-    }
-
-    .detail-value {
-      color: #333;
-      font-weight: 500;
-      text-align: right;
-      max-width: 60%;
-      word-break: break-word;
-    }
-
-    .blockchain-info {
-      background: linear-gradient(135deg, #e3f2fd, #bbdefb);
-      border: 1px solid #2196f3;
-      border-radius: 12px;
-      padding: 20px;
-      margin-top: 20px;
-    }
-
-    .verification-footer {
-      text-align: center;
-      margin-top: 30px;
-      padding-top: 20px;
-      border-top: 2px solid #f0f0f0;
-      color: #666;
-      font-size: 14px;
-    }
-
-    .timestamp-professional {
-      font-family: 'Courier New', monospace;
-      background: #f8f9fa;
-      padding: 4px 8px;
-      border-radius: 4px;
-      font-size: 12px;
+      padding: 40px;
     }
 
     .loading {
@@ -193,30 +58,142 @@ import { CommonModule } from '@angular/common';
       100% { transform: rotate(360deg); }
     }
 
-    .verification-error {
-      background: linear-gradient(135deg, #ffebee, #ffcdd2);
-      border: 2px solid #f44336;
-      border-radius: 12px;
-      padding: 25px;
-      margin-bottom: 25px;
-      box-shadow: 0 4px 12px rgba(244, 67, 54, 0.2);
+    .result {
+      margin-top: 20px;
+      padding: 20px;
+      border-radius: 8px;
     }
 
-    .error-header {
+    .result.success {
+      background: #d4edda;
+      border: 1px solid #c3e6cb;
+      color: #155724;
+    }
+
+    .result.error {
+      background: #f8d7da;
+      border: 1px solid #f5c6cb;
+      color: #721c24;
+    }
+
+    .verification-info {
+      margin-top: 20px;
+    }
+
+    .info-card {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 25px;
+      border-radius: 12px;
+      box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+    }
+
+    .info-card h3 {
+      margin: 0 0 15px 0;
+      font-size: 1.3rem;
+    }
+
+    .info-card p {
+      margin: 0 0 20px 0;
+      opacity: 0.9;
+    }
+
+    .url-info {
+      background: rgba(255, 255, 255, 0.1);
+      padding: 15px;
+      border-radius: 8px;
+    }
+
+    .url-info ul {
+      margin: 10px 0 0 0;
+      padding-left: 20px;
+    }
+
+    .url-info li {
+      margin-bottom: 5px;
+    }
+
+    .url-info code {
+      background: rgba(255, 255, 255, 0.2);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-family: 'Courier New', monospace;
+    }
+
+    .success-card {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 25px;
+      border-radius: 12px;
+      margin-top: 20px;
+      box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+    }
+
+    .error-card {
+      background: linear-gradient(135deg, #ff6b6b 0%, #ee5a52 100%);
+      color: white;
+      padding: 25px;
+      border-radius: 12px;
+      margin-top: 20px;
+      box-shadow: 0 8px 25px rgba(255, 107, 107, 0.3);
+    }
+
+    .profile-section {
+      background: #f8f9fa;
+      border: 1px solid #e1e5e9;
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+
+    .section-title {
+      color: #4facfe;
+      font-size: 1.3rem;
+      margin-bottom: 15px;
       display: flex;
       align-items: center;
+      gap: 10px;
+    }
+
+    .info-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
       gap: 15px;
-      margin-bottom: 15px;
     }
 
-    .error-icon {
-      font-size: 2.5rem;
+    .info-item {
+      display: flex;
+      flex-direction: column;
     }
 
-    .error-title {
-      margin: 0;
-      color: #c62828;
-      font-size: 1.8rem;
+    .info-label {
+      font-weight: 600;
+      color: #555;
+      font-size: 0.9rem;
+      margin-bottom: 5px;
+    }
+
+    .info-value {
+      color: #333;
+      font-size: 1rem;
+      padding: 8px 12px;
+      background: white;
+      border: 1px solid #e1e5e9;
+      border-radius: 4px;
+    }
+
+    .array-value {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+    }
+
+    .array-tag {
+      background: #4facfe;
+      color: white;
+      padding: 4px 8px;
+      border-radius: 12px;
+      font-size: 0.8rem;
     }
 
     .timestamp-display {
@@ -224,272 +201,309 @@ import { CommonModule } from '@angular/common';
       font-size: 0.9rem;
       color: #666;
     }
+
+    .blockchain-info {
+      background: linear-gradient(135deg, #e3f2fd, #bbdefb);
+      border: 1px solid #2196f3;
+      border-radius: 12px;
+      padding: 20px;
+      margin-top: 20px;
+    }
+
+    .verification-status {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      background: linear-gradient(135deg, #4CAF50, #45a049);
+      color: white;
+      padding: 12px 24px;
+      border-radius: 30px;
+      font-weight: 600;
+      margin-bottom: 15px;
+      box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
+    }
+
+    .verification-status.invalid {
+      background: linear-gradient(135deg, #f44336, #d32f2f);
+      box-shadow: 0 4px 12px rgba(244, 67, 54, 0.3);
+    }
+
+    .verification-details {
+      background: rgba(255, 255, 255, 0.1);
+      padding: 15px;
+      border-radius: 8px;
+      margin-top: 15px;
+    }
+
+    .verification-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .verification-item:last-child {
+      border-bottom: none;
+    }
+
+    .verification-label {
+      font-weight: 600;
+      opacity: 0.9;
+    }
+
+    .verification-value {
+      opacity: 0.8;
+      font-family: 'Courier New', monospace;
+      font-size: 0.9rem;
+    }
+
+    .verification-value.true {
+      color: #4CAF50;
+    }
+
+    .verification-value.false {
+      color: #f44336;
+    }
+
+    @media (max-width: 768px) {
+      .info-grid {
+        grid-template-columns: 1fr;
+      }
+    }
   `]
 })
 export class VerifyProfileComponent implements OnInit {
-  loading: boolean = true;
-  verificationResult: string = '';
+  loading: boolean = false;
+  resultMessage: string = '';
+  isSuccess: boolean = false;
+  fileId: string = '';
+  pubkey: string = '';
+
+  constructor(private route: ActivatedRoute) {}
 
   ngOnInit() {
-    this.checkVerificationRequest();
+    this.route.queryParams.subscribe(params => {
+      this.fileId = params['file_id'] || '';
+      this.pubkey = params['pubkey'] || '';
+      
+      if (this.fileId && this.pubkey) {
+        this.verifyProfile();
+      }
+    });
   }
 
-  async checkVerificationRequest() {
-    const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.has('profileId') && urlParams.has('userId')) {
-      await this.showProfessionalVerification(urlParams);
-    } else {
-      this.loading = false;
-      this.verificationResult = `
-        <div class="verification-professional">
-          <div class="verification-header">
-            <h2>No Verification Request</h2>
-            <p>This page is used for profile verification. Please use a valid verification link.</p>
+  async verifyProfile() {
+    if (!this.fileId || !this.pubkey) {
+      this.resultMessage = `
+        <div class="error-card">
+          <h3>❌ Missing Parameters</h3>
+          <p><strong>Details:</strong> Both file_id and pubkey are required for verification.</p>
+          <div class="verification-details">
+            <p><strong>Received:</strong></p>
+            <ul>
+              <li>file_id: ${this.fileId || 'Missing'}</li>
+              <li>pubkey: ${this.pubkey || 'Missing'}</li>
+            </ul>
           </div>
         </div>
       `;
+      this.isSuccess = false;
+      return;
     }
-  }
 
-  async showProfessionalVerification(urlParams: URLSearchParams) {
-    const profileId = urlParams.get('profileId');
-    const userId = urlParams.get('userId');
-    const timestamp = urlParams.get('timestamp');
-    const signature = urlParams.get('signature');
-    const hash = urlParams.get('hash');
-    const isPublic = urlParams.get('public') === 'true';
+    this.loading = true;
+    this.resultMessage = '';
 
     try {
-      // Call verification API
-      const response = await fetch(`http://localhost:3000/api/v1/blockchain/verify?profileId=${profileId}&userId=${userId}&timestamp=${timestamp}&signature=${signature}&hash=${hash}`);
-      const data = await response.json();
-      
-      if (data.status === 'verified') {
-        this.verificationResult = this.createProfessionalVerificationHTML(data, isPublic);
-      } else {
-        this.verificationResult = this.createProfessionalErrorHTML(data);
-      }
-    } catch (error) {
-      this.verificationResult = this.createProfessionalErrorHTML({
-        status: 'error',
-        message: 'Verification system temporarily unavailable',
-        timestamp: new Date().toISOString(),
-        profileId,
-        userId
+      const response = await fetch('http://localhost:3000/blockchain/verify', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          file_id: this.fileId,
+          pubkey: this.pubkey
+        })
       });
-    } finally {
-      this.loading = false;
-    }
-  }
 
-  createProfessionalVerificationHTML(data: any, isPublic: boolean): string {
-    const profile = data.profile;
-    const verification = data.verification;
-    const blockchain = data.blockchain;
-    
-    return `
-      <div class="verification-professional">
-        <div class="verification-header">
-          <div class="verification-status">
-            <span>✅</span>
-            <span>Profile Successfully Verified</span>
-          </div>
-          <h2 style="margin: 0; color: #333; font-size: 24px;">Identity Verification Complete</h2>
-          <p style="margin: 10px 0 0 0; color: #666;">This profile has been cryptographically verified on the blockchain</p>
-        </div>
-
-        <div class="verification-details">
-          <div class="detail-card">
-            <h4>👤 Personal Information</h4>
-            <div class="detail-grid">
-              ${profile.data.firstName ? `<div class="detail-item"><span class="detail-label">First Name</span><span class="detail-value">${profile.data.firstName}</span></div>` : ''}
-              ${profile.data.lastName ? `<div class="detail-item"><span class="detail-label">Last Name</span><span class="detail-value">${profile.data.lastName}</span></div>` : ''}
-              ${profile.data.email ? `<div class="detail-item"><span class="detail-label">Email</span><span class="detail-value">${profile.data.email}</span></div>` : ''}
-              ${profile.data.phone ? `<div class="detail-item"><span class="detail-label">Phone</span><span class="detail-value">${profile.data.phone}</span></div>` : ''}
-              ${profile.data.nationality ? `<div class="detail-item"><span class="detail-label">Nationality</span><span class="detail-value">${profile.data.nationality}</span></div>` : ''}
-            </div>
-          </div>
-
-          <div class="detail-card">
-            <h4>💼 Professional Information</h4>
-            <div class="detail-grid">
-              ${profile.data.company ? `<div class="detail-item"><span class="detail-label">Company</span><span class="detail-value">${profile.data.company}</span></div>` : ''}
-              ${profile.data.jobTitle ? `<div class="detail-item"><span class="detail-label">Job Title</span><span class="detail-value">${profile.data.jobTitle}</span></div>` : ''}
-              ${profile.data.department ? `<div class="detail-item"><span class="detail-label">Department</span><span class="detail-value">${profile.data.department}</span></div>` : ''}
-              ${profile.data.industry ? `<div class="detail-item"><span class="detail-label">Industry</span><span class="detail-value">${profile.data.industry}</span></div>` : ''}
-              ${profile.data.workEmail ? `<div class="detail-item"><span class="detail-label">Work Email</span><span class="detail-value">${profile.data.workEmail}</span></div>` : ''}
-            </div>
-          </div>
-
-          <div class="detail-card">
-            <h4>📍 Location Information</h4>
-            <div class="detail-grid">
-              ${profile.data.city ? `<div class="detail-item"><span class="detail-label">City</span><span class="detail-value">${profile.data.city}</span></div>` : ''}
-              ${profile.data.state ? `<div class="detail-item"><span class="detail-label">State/Province</span><span class="detail-value">${profile.data.state}</span></div>` : ''}
-              ${profile.data.country ? `<div class="detail-item"><span class="detail-label">Country</span><span class="detail-value">${profile.data.country}</span></div>` : ''}
-              ${profile.data.postalCode ? `<div class="detail-item"><span class="detail-label">Postal Code</span><span class="detail-value">${profile.data.postalCode}</span></div>` : ''}
-            </div>
-          </div>
-
-          ${!isPublic ? `
-          <div class="detail-card">
-            <h4>📋 Update History</h4>
-            ${profile.updateHistory && profile.updateHistory.length > 0 ? `
-              <div class="detail-grid">
-                ${profile.updateHistory.slice(0, 5).map((update: any, index: number) => `
-                  <div class="detail-item" style="grid-column: 1 / -1; border-bottom: 1px solid #eee; padding-bottom: 10px; margin-bottom: 10px;">
-                    <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
-                      <span class="detail-label">Update #${profile.updateHistory.length - index}</span>
-                      <span class="detail-value timestamp-professional">${new Date(update.timestamp).toLocaleString()}</span>
-                    </div>
-                    <div style="font-size: 12px; color: #666; margin-bottom: 5px;">
-                      <strong>Source:</strong> ${update.updateSource}
-                    </div>
-                    <div style="font-size: 12px; color: #666;">
-                      <strong>Fields Changed:</strong>
-                      <div style="margin-top: 5px; padding-left: 10px;">
-                        ${update.changedFields.map((field: any) => `
-                          <div style="margin-bottom: 3px;">
-                            • <strong>${field.fieldName}</strong>: ${field.oldValue === undefined ? 'created' : field.newValue === null ? 'removed' : 'updated'}
-                          </div>
-                        `).join('')}
-                      </div>
-                    </div>
-                  </div>
-                `).join('')}
-                ${profile.updateHistory.length > 5 ? `
-                  <div style="text-align: center; color: #666; font-size: 12px; font-style: italic;">
-                    Showing latest 5 updates. Total: ${profile.updateHistory.length} updates
-                  </div>
-                ` : ''}
+      const result: VerificationResponse = await response.json();
+      
+      if (response.ok && result.success && result.profile_data && result.verification) {
+        const profile = result.profile_data;
+        const verification = result.verification;
+        
+        this.resultMessage = `
+          <div class="success-card">
+            <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 20px;">
+              <span style="font-size: 2rem;">🔍</span>
+              <div>
+                <h3 style="margin: 0; color: #155724;">Profile Verification Complete</h3>
+                <p style="margin: 5px 0 0 0; color: #155724; opacity: 0.8;">Blockchain verification results</p>
               </div>
-            ` : `
-              <div style="text-align: center; padding: 20px; color: #666;">
-                <span style="font-size: 2rem; opacity: 0.3;">📝</span>
-                <p>No update history available for this profile.</p>
+            </div>
+          </div>
+
+          <div class="profile-section">
+            <h4 class="section-title">🏢 Company Information</h4>
+            <div class="info-grid">
+              <div class="info-item">
+                <span class="info-label">Company Name</span>
+                <span class="info-value">${profile.company_name}</span>
               </div>
-            `}
+              <div class="info-item">
+                <span class="info-label">Location</span>
+                <span class="info-value">${profile.location}</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">Contact</span>
+                <span class="info-value">${profile.contact}</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">Company Size</span>
+                <span class="info-value">${profile.size}</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">Year Established</span>
+                <span class="info-value">${profile.established}</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">Annual Revenue</span>
+                <span class="info-value">${profile.revenue}</span>
+              </div>
+            </div>
+          </div>
+
+          ${profile.market_segments && Array.isArray(profile.market_segments) && profile.market_segments.length > 0 ? `
+          <div class="profile-section">
+            <h4 class="section-title">🎯 Market Segments</h4>
+            <div class="array-value">
+              ${profile.market_segments.map((segment: string) => `<span class="array-tag">${segment}</span>`).join('')}
+            </div>
           </div>
           ` : ''}
 
-          <div class="detail-card">
-            <h4>🔐 Verification Details</h4>
-            <div class="detail-grid">
-              <div class="detail-item">
-                <span class="detail-label">Profile ID</span>
-                <span class="detail-value timestamp-professional">${profile.id}</span>
+          ${profile.technology_focus && Array.isArray(profile.technology_focus) && profile.technology_focus.length > 0 ? `
+          <div class="profile-section">
+            <h4 class="section-title">🔬 Technology Focus</h4>
+            <div class="array-value">
+              ${profile.technology_focus.map((tech: string) => `<span class="array-tag">${tech}</span>`).join('')}
+            </div>
+          </div>
+          ` : ''}
+
+          ${profile.key_markets && Array.isArray(profile.key_markets) && profile.key_markets.length > 0 ? `
+          <div class="profile-section">
+            <h4 class="section-title">🌍 Key Markets</h4>
+            <div class="array-value">
+              ${profile.key_markets.map((market: string) => `<span class="array-tag">${market}</span>`).join('')}
+            </div>
+          </div>
+          ` : ''}
+
+          ${profile.customer_segments && Array.isArray(profile.customer_segments) && profile.customer_segments.length > 0 ? `
+          <div class="profile-section">
+            <h4 class="section-title">👥 Customer Segments</h4>
+            <div class="array-value">
+              ${profile.customer_segments.map((segment: string) => `<span class="array-tag">${segment}</span>`).join('')}
+            </div>
+          </div>
+          ` : ''}
+
+          ${profile.competitive_position ? `
+          <div class="profile-section">
+            <h4 class="section-title">🏆 Competitive Position</h4>
+            <div class="info-value">${profile.competitive_position}</div>
+          </div>
+          ` : ''}
+
+          ${profile.partnerships && Array.isArray(profile.partnerships) && profile.partnerships.length > 0 ? `
+          <div class="profile-section">
+            <h4 class="section-title">🤝 Partnerships</h4>
+            <div class="array-value">
+              ${profile.partnerships.map((partner: string) => `<span class="array-tag">${partner}</span>`).join('')}
+            </div>
+          </div>
+          ` : ''}
+
+          ${profile.certifications && Array.isArray(profile.certifications) && profile.certifications.length > 0 ? `
+          <div class="profile-section">
+            <h4 class="section-title">🏅 Certifications</h4>
+            <div class="array-value">
+              ${profile.certifications.map((cert: string) => `<span class="array-tag">${cert}</span>`).join('')}
+            </div>
+          </div>
+          ` : ''}
+
+          ${profile.sales_channels && Array.isArray(profile.sales_channels) && profile.sales_channels.length > 0 ? `
+          <div class="profile-section">
+            <h4 class="section-title">📈 Sales Channels</h4>
+            <div class="array-value">
+              ${profile.sales_channels.map((channel: string) => `<span class="array-tag">${channel}</span>`).join('')}
+            </div>
+          </div>
+          ` : ''}
+
+          <div class="blockchain-info">
+            <h4 style="margin: 0 0 15px 0; color: #1976d2;">🔗 Verification Results</h4>
+            
+            <div class="verification-status ${verification.is_valid ? '' : 'invalid'}">
+              <span>${verification.is_valid ? '✅' : '❌'}</span>
+              <span>${verification.is_valid ? 'Profile Verified' : 'Profile Invalid'}</span>
+            </div>
+            
+            <div class="verification-details">
+              <div class="verification-item">
+                <span class="verification-label">Signature Verified:</span>
+                <span class="verification-value ${verification.signature_verified ? 'true' : 'false'}">${verification.signature_verified ? '✅ Yes' : '❌ No'}</span>
               </div>
-              <div class="detail-item">
-                <span class="detail-label">User ID</span>
-                <span class="detail-value timestamp-professional">${profile.userId}</span>
+              <div class="verification-item">
+                <span class="verification-label">Hash Match:</span>
+                <span class="verification-value ${verification.hash_match ? 'true' : 'false'}">${verification.hash_match ? '✅ Yes' : '❌ No'}</span>
               </div>
-              <div class="detail-item">
-                <span class="detail-label">Verified At</span>
-                <span class="detail-value timestamp-professional">${new Date(verification.verifiedAt).toLocaleString()}</span>
+              <div class="verification-item">
+                <span class="verification-label">Verification Timestamp:</span>
+                <span class="verification-value">${new Date(verification.verification_timestamp).toLocaleString()}</span>
               </div>
-              <div class="detail-item">
-                <span class="detail-label">Created At</span>
-                <span class="detail-value timestamp-professional">${new Date(profile.createdAt).toLocaleString()}</span>
+              <div class="verification-item">
+                <span class="verification-label">Hedera Hash:</span>
+                <span class="verification-value">${verification.hedera_hash.substring(0, 20)}...</span>
+              </div>
+              <div class="verification-item">
+                <span class="verification-label">Lisk Hash:</span>
+                <span class="verification-value">${verification.lisk_hash.substring(0, 20)}...</span>
               </div>
             </div>
           </div>
-        </div>
-
-        <div class="blockchain-info">
-          <h4 style="margin: 0 0 15px 0; color: #1976d2;">🔗 Blockchain Network Information</h4>
-          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
-            <div class="detail-item">
-              <span class="detail-label">Network</span>
-              <span class="detail-value">${blockchain.network}</span>
-            </div>
-            <div class="detail-item">
-              <span class="detail-label">Operator ID</span>
-              <span class="detail-value timestamp-professional">${blockchain.operatorId}</span>
-            </div>
-            <div class="detail-item">
-              <span class="detail-label">Mode</span>
-              <span class="detail-value">${blockchain.isDemo ? 'Demo Mode' : 'Live Network'}</span>
+        `;
+        this.isSuccess = true;
+      } else {
+        const errorMessage = result.error || 'Failed to verify profile';
+        throw new Error(errorMessage);
+      }
+    } catch (error: any) {
+      this.resultMessage = `
+        <div class="error-card">
+          <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 15px;">
+            <span style="font-size: 2rem;">❌</span>
+            <div>
+              <h3 style="margin: 0; color: #721c24;">Verification Failed</h3>
+              <p style="margin: 5px 0 0 0; color: #721c24; opacity: 0.8;">Could not verify profile on blockchain</p>
             </div>
           </div>
-        </div>
-
-        <div class="verification-footer">
-          <p><strong>This verification was generated automatically by our blockchain-secured identity system.</strong></p>
-          <p>For questions about this verification, please contact the issuing organization.</p>
-          <p style="margin-top: 15px; font-size: 12px; opacity: 0.8;">
-            Powered by Blockchain Verification Portal • Secured by Hedera Hashgraph
-          </p>
-        </div>
-      </div>
-    `;
-  }
-
-  createProfessionalErrorHTML(data: any): string {
-    return `
-      <div class="verification-professional">
-        <div class="verification-header">
-          <div style="
-            display: inline-flex;
-            align-items: center;
-            gap: 10px;
-            background: linear-gradient(135deg, #f44336, #d32f2f);
-            color: white;
-            padding: 12px 24px;
-            border-radius: 30px;
-            font-weight: 600;
-            margin-bottom: 15px;
-            box-shadow: 0 4px 12px rgba(244, 67, 54, 0.3);
-          ">
-            <span>❌</span>
-            <span>Verification Failed</span>
-          </div>
-          <h2 style="margin: 0; color: #333; font-size: 24px;">Identity Verification Unsuccessful</h2>
-          <p style="margin: 10px 0 0 0; color: #666;">${data.message || 'The profile could not be verified at this time'}</p>
-        </div>
-
-        <div class="detail-card" style="border-left-color: #f44336;">
-          <h4>❌ Error Information</h4>
-          <div class="detail-grid">
-            <div class="detail-item">
-              <span class="detail-label">Status</span>
-              <span class="detail-value">${data.status}</span>
-            </div>
-            <div class="detail-item">
-              <span class="detail-label">Timestamp</span>
-              <span class="detail-value timestamp-professional">${new Date(data.timestamp).toLocaleString()}</span>
-            </div>
-            ${data.profileId ? `
-              <div class="detail-item">
-                <span class="detail-label">Profile ID</span>
-                <span class="detail-value timestamp-professional">${data.profileId}</span>
-              </div>
-            ` : ''}
-            ${data.userId ? `
-              <div class="detail-item">
-                <span class="detail-label">User ID</span>
-                <span class="detail-value timestamp-professional">${data.userId}</span>
-              </div>
-            ` : ''}
+          <div class="verification-details">
+            <p><strong>Error Details:</strong> ${error.message}</p>
+            <p><strong>Parameters Used:</strong></p>
+            <ul>
+              <li>file_id: ${this.fileId}</li>
+              <li>pubkey: ${this.pubkey}</li>
+            </ul>
           </div>
         </div>
-
-        <div style="background: rgba(244, 67, 54, 0.1); border-radius: 12px; padding: 20px; margin-top: 20px;">
-          <h4 style="margin: 0 0 15px 0; color: #c62828;">🔧 Possible Solutions</h4>
-          <ul style="margin: 0; padding-left: 20px; color: #d32f2f;">
-            <li>Verify that the verification link is complete and unmodified</li>
-            <li>Check that the link has not expired</li>
-            <li>Contact the organization that issued this verification</li>
-            <li>Ensure you have a stable internet connection</li>
-          </ul>
-        </div>
-
-        <div class="verification-footer">
-          <p><strong>If you believe this is an error, please contact technical support.</strong></p>
-          <p style="margin-top: 15px; font-size: 12px; opacity: 0.8;">
-            Powered by Blockchain Verification Portal • Secured by Hedera Hashgraph
-          </p>
-        </div>
-      </div>
-    `;
+      `;
+      this.isSuccess = false;
+    } finally {
+      this.loading = false;
+    }
   }
 } 

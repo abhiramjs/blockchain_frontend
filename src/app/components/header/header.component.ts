@@ -72,7 +72,7 @@ export class HeaderComponent implements OnInit {
 
   async checkApiStatus() {
     try {
-      const response = await fetch('http://localhost:3000/api/v1/auth/health');
+      const response = await fetch('http://localhost:3000/health');
       const data = await response.json();
       
       if (data.status === 'healthy') {
@@ -89,25 +89,22 @@ export class HeaderComponent implements OnInit {
 
   async checkBlockchainStatus() {
     try {
-      const response = await fetch('http://localhost:3000/api/v1/blockchain/health');
-      const data = await response.json();
+      // Use the latest-available endpoint as a blockchain health check
+      const response = await fetch('http://localhost:3000/blockchain/latest-available');
       
-      if (data.status === 'demo_mode') {
-        this.blockchainStatus = 'demo';
-        this.blockchainStatusText = 'Demo Mode (Mock Data)';
-      } else if (data.status === 'healthy') {
+      if (response.ok) {
         this.blockchainStatus = 'online';
-        this.blockchainStatusText = `Blockchain Connected (${data.operatorId})`;
-      } else if (data.status === 'unhealthy') {
-        this.blockchainStatus = 'offline';
-        this.blockchainStatusText = `Connection Failed (${data.operatorId})`;
+        this.blockchainStatusText = 'Blockchain Connected';
+      } else if (response.status === 404) {
+        // 404 means no profiles exist, but blockchain is working
+        this.blockchainStatus = 'online';
+        this.blockchainStatusText = 'Blockchain Connected (No profiles yet)';
       } else {
-        this.blockchainStatus = 'offline';
-        this.blockchainStatusText = 'Blockchain Error';
+        throw new Error('Blockchain not responding');
       }
     } catch (error) {
       this.blockchainStatus = 'offline';
-      this.blockchainStatusText = 'Status Check Failed';
+      this.blockchainStatusText = 'Blockchain Disconnected';
     }
   }
 } 

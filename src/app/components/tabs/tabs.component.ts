@@ -11,54 +11,90 @@ import { CommonModule } from '@angular/common';
         class="tab" 
         [class.active]="activeTab === 'create'"
         (click)="setActiveTab('create')">
-        Create Profile
+        <span class="tab-icon">➕</span>
+        <span class="tab-label">Create Profile</span>
       </button>
       <button 
         class="tab" 
         [class.active]="activeTab === 'read'"
         (click)="setActiveTab('read')">
-        Read Profile
+        <span class="tab-icon">📖</span>
+        <span class="tab-label">Read Profile</span>
       </button>
       <button 
         class="tab" 
         [class.active]="activeTab === 'update'"
         (click)="setActiveTab('update')">
-        Update Profile
+        <span class="tab-icon">✏️</span>
+        <span class="tab-label">Update Profile</span>
       </button>
       <button 
         class="tab" 
-        [class.active]="activeTab === 'verify'"
-        (click)="setActiveTab('verify')"
-        [style.display]="showVerifyTab ? 'block' : 'none'">
-        Verify Profile
+        [class.active]="activeTab === 'regulator'"
+        (click)="setActiveTab('regulator')">
+        <span class="tab-icon">🔍</span>
+        <span class="tab-label">Regulator</span>
       </button>
     </div>
   `,
   styles: [`
     .tabs {
       display: flex;
-      margin-bottom: 30px;
-      border-bottom: 2px solid #f0f0f0;
+      gap: 5px;
+      padding: 0;
+      margin: 0;
     }
 
     .tab {
-      padding: 15px 25px;
       background: none;
       border: none;
-      font-size: 1rem;
+      padding: 15px 20px;
       cursor: pointer;
-      color: #666;
-      border-bottom: 3px solid transparent;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: #6c757d;
+      font-weight: 500;
       transition: all 0.3s ease;
-    }
-
-    .tab.active {
-      color: #4facfe;
-      border-bottom-color: #4facfe;
+      border-bottom: 3px solid transparent;
+      position: relative;
+      font-size: 0.9rem;
     }
 
     .tab:hover {
-      color: #4facfe;
+      color: #667eea;
+      background: rgba(102, 126, 234, 0.1);
+    }
+
+    .tab.active {
+      color: #667eea;
+      border-bottom-color: #667eea;
+      background: rgba(102, 126, 234, 0.1);
+    }
+
+    .tab-icon {
+      font-size: 1.1rem;
+    }
+
+    .tab-label {
+      font-size: 0.9rem;
+    }
+
+    @media (max-width: 768px) {
+      .tabs {
+        flex-wrap: wrap;
+        gap: 2px;
+      }
+
+      .tab {
+        flex: 1;
+        min-width: 120px;
+        padding: 12px 15px;
+      }
+
+      .tab-label {
+        display: none;
+      }
     }
   `]
 })
@@ -76,4 +112,4 @@ export class TabsComponent {
   setShowVerifyTab(show: boolean) {
     this.showVerifyTab = show;
   }
-} 
+}
