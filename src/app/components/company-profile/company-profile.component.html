@@ -561,8 +561,28 @@
           <p>Enter your private key to load and update your company profile</p>
         </div>
 
+        <!-- Update Profile Messages -->
+        <div class="messages-container" *ngIf="updateProfileError || updateProfileSuccess">
+          <div class="message error" *ngIf="updateProfileError">
+            <span class="message-icon">⚠️</span>
+            <span class="message-text">{{ updateProfileError }}</span>
+          </div>
+          <div class="message success" *ngIf="updateProfileSuccess">
+            <span class="message-icon">✅</span>
+            <span class="message-text">{{ updateProfileSuccess }}</span>
+          </div>
+        </div>
+
+        <!-- Update Profile Loading Overlay -->
+        <div class="loading-overlay" *ngIf="updateProfileLoading">
+          <div class="loading-spinner">
+            <div class="spinner"></div>
+            <p>Processing...</p>
+          </div>
+        </div>
+
         <!-- Private Key Form -->
-        <div class="private-key-section" *ngIf="!currentProfile">
+        <div class="private-key-section" *ngIf="!currentProfile && !updateProfileLoading">
           <div class="form-card">
             <h2>🔐 Private Key Authentication</h2>
             <p>Enter your private key to access and edit your profile</p>
@@ -582,9 +602,9 @@
               </div>
 
               <div class="form-actions">
-                <button type="submit" class="btn btn-primary" [disabled]="privateKeyForm.invalid || isLoading">
-                  <span *ngIf="!isLoading">🔓 Validate & Load Profile</span>
-                  <span *ngIf="isLoading">⏳ Validating...</span>
+                <button type="submit" class="btn btn-primary" [disabled]="privateKeyForm.invalid || updateProfileLoading">
+                  <span *ngIf="!updateProfileLoading">🔓 Validate & Load Profile</span>
+                  <span *ngIf="updateProfileLoading">⏳ Validating...</span>
                 </button>
               </div>
             </form>
@@ -592,11 +612,12 @@
         </div>
 
         <!-- Update Profile Form -->
-        <div class="update-form-section" *ngIf="currentProfile">
+        <div class="update-form-section" *ngIf="currentProfile && !updateProfileLoading">
           <div class="form-card">
             <div class="profile-info">
               <h2>📝 Edit Profile: {{ currentProfile.company_name }}</h2>
               <p>File ID: {{ fileId }}</p>
+              <p>Public Key: {{ publicKey }}</p>
             </div>
 
             <form [formGroup]="updateForm" (ngSubmit)="updateProfile()" class="update-form">
@@ -798,9 +819,9 @@
 
               <!-- Submit Button -->
               <div class="form-actions">
-                <button type="submit" class="btn btn-primary" [disabled]="updateForm.invalid || isLoading">
-                  <span *ngIf="!isLoading">💾 Update Profile</span>
-                  <span *ngIf="isLoading">⏳ Updating...</span>
+                <button type="submit" class="btn btn-primary" [disabled]="updateForm.invalid || updateProfileLoading">
+                  <span *ngIf="!updateProfileLoading">💾 Update Profile</span>
+                  <span *ngIf="updateProfileLoading">⏳ Updating...</span>
                 </button>
               </div>
             </form>

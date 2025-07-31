@@ -45,6 +45,23 @@ interface SingleLatestProfileResponse {
   signature_verified: boolean;
 }
 
+interface ProfileUpdateResponse {
+  success: boolean;
+  new_file_id: string;
+  new_version: number;
+  profile_hash: string;
+  public_key: string;
+  timestamp: string;
+  diffs: any[];
+}
+
+interface PrivateKeyValidationResponse {
+  success: boolean;
+  file_id: string;
+  public_key: string;
+  version: number;
+  profile_data: any;
+}
 
 
 @Component({
@@ -81,6 +98,12 @@ export class CompanyProfileComponent implements OnInit {
   successMessage: string = '';
   readProfileLoading: boolean = false;
   readProfileError: string = '';
+
+  // Update Profile specific states
+  updateProfileLoading: boolean = false;
+  updateProfileError: string = '';
+  updateProfileSuccess: string = '';
+  profileUpdateResponse: ProfileUpdateResponse | null = null;
 
   // API base URL
   private readonly API_BASE_URL = 'http://localhost:3000';
@@ -370,35 +393,69 @@ export class CompanyProfileComponent implements OnInit {
     }
 
     try {
-      this.isLoading = true;
+      this.updateProfileLoading = true;
+      this.updateProfileError = '';
+      this.updateProfileSuccess = '';
+      
       const privateKey = this.privateKeyForm.get('private_key')?.value;
+      console.log('🔐 Validating private key...');
 
-      // Simulate API call to get file_id from private_key
-      // In real implementation, this would be a backend endpoint
-      const response = await this.http.get<{file_id: string, profile: CompanyProfile}>(
-        `${this.API_BASE_URL}/blockchain/profiles/private/${privateKey}`
+      // Step 1: Get file_id and profile data using private key
+      const validationResponse = await this.http.post<PrivateKeyValidationResponse>(
+        `${this.API_BASE_URL}/blockchain/profiles/private/validate`,
+        { private_key: privateKey }
       ).toPromise();
 
-      if (response) {
-        this.fileId = response.file_id;
-        this.currentProfile = response.profile;
+      if (validationResponse && validationResponse.success) {
+        console.log('✅ Private key validated successfully');
+        this.fileId = validationResponse.file_id;
+        this.publicKey = validationResponse.public_key;
         
-        // Populate update form with current profile data
-        this.populateUpdateForm(this.currentProfile);
+        // Convert the profile data to CompanyProfile format
+        if (validationResponse.profile_data) {
+          this.currentProfile = {
+            company_name: validationResponse.profile_data.company_name || '',
+            location: validationResponse.profile_data.location || '',
+            contact: validationResponse.profile_data.contact || '',
+            size: validationResponse.profile_data.size || '',
+            established: validationResponse.profile_data.established || '',
+            revenue: validationResponse.profile_data.revenue || '',
+            market_segments: validationResponse.profile_data.market_segments || [],
+            technology_focus: validationResponse.profile_data.technology_focus || [],
+            key_markets: validationResponse.profile_data.key_markets || [],
+            customer_segments: validationResponse.profile_data.customer_segments || [],
+            competitive_position: validationResponse.profile_data.competitive_position || '',
+            partnerships: validationResponse.profile_data.partnerships || [],
+            certifications: validationResponse.profile_data.certifications || [],
+            sales_channels: validationResponse.profile_data.sales_channels || []
+          };
+          
+          // Populate update form with current profile data
+          this.populateUpdateForm(this.currentProfile);
+        }
         
-        this.showSuccess('Private key validated. Profile loaded for editing.');
+        this.updateProfileSuccess = 'Private key validated successfully. Profile loaded for editing.';
+        console.log('📝 Profile loaded for editing:', this.currentProfile);
       } else {
-        throw new Error('No response received from server');
+        throw new Error('Invalid private key or profile not found');
+      }
+    } catch (error: any) {
+      console.error('❌ Private key validation error:', error);
+      
+      if (error.status === 404) {
+        this.updateProfileError = 'No profile found for this private key. Please check your private key.';
+      } else if (error.status === 400) {
+        this.updateProfileError = 'Invalid private key format. Please check your private key.';
+      } else if (error.status === 0) {
+        this.updateProfileError = 'Cannot connect to backend server. Please check if the server is running.';
+      } else {
+        this.updateProfileError = 'Failed to validate private key. Please check your private key and try again.';
       }
       
-      // Populate update form with current profile data
-      this.populateUpdateForm(this.currentProfile);
-      
-      this.showSuccess('Private key validated. Profile loaded for editing.');
-    } catch (error) {
-      this.handleApiError(error, 'Invalid private key or failed to load profile');
+      this.handleApiError(error, 'Failed to validate private key');
     } finally {
-      this.isLoading = false;
+      this.updateProfileLoading = false;
+      this.cdr.detectChanges();
     }
   }
 
@@ -413,30 +470,71 @@ export class CompanyProfileComponent implements OnInit {
       return;
     }
 
+    const privateKey = this.privateKeyForm.get('private_key')?.value;
+    if (!privateKey) {
+      this.showError('Private key is required for updating profile.');
+      return;
+    }
+
     try {
-      this.isLoading = true;
+      this.updateProfileLoading = true;
+      this.updateProfileError = '';
+      this.updateProfileSuccess = '';
+      
+      console.log('🔄 Updating profile with file ID:', this.fileId);
+      
       const updateData = {
-        ...this.updateForm.value,
-        private_key: this.privateKeyForm.get('private_key')?.value,
-        timestamp: new Date().toISOString()
+        file_id: this.fileId,
+        profile_data: this.updateForm.value,
+        timestamp: new Date().toISOString(),
+        private_key: privateKey
       };
 
-      // Simulate API call to PUT /blockchain/profiles/{file_id}
-      await this.http.put(
+      // Send PUT request to update profile
+      const response = await this.http.put<ProfileUpdateResponse>(
         `${this.API_BASE_URL}/blockchain/profiles/${this.fileId}`,
         updateData
       ).toPromise();
 
-      this.showSuccess('Profile updated successfully!');
-      this.updateForm.reset();
-      this.privateKeyForm.reset();
-      this.clearFormArrays(this.updateForm);
-      this.currentProfile = null;
-      this.fileId = '';
-    } catch (error) {
+      if (response && response.success) {
+        console.log('✅ Profile updated successfully:', response);
+        this.profileUpdateResponse = response;
+        
+        this.updateProfileSuccess = `Profile updated successfully! New version: ${response.new_version}, New File ID: ${response.new_file_id}`;
+        
+        // Clear forms and reset state
+        this.updateForm.reset();
+        this.privateKeyForm.reset();
+        this.clearFormArrays(this.updateForm);
+        this.currentProfile = null;
+        this.fileId = '';
+        this.publicKey = '';
+        this.profileUpdateResponse = null;
+        
+        // Show success message with metadata
+        this.showSuccess('Profile updated successfully! New version created and stored on blockchain.');
+      } else {
+        throw new Error('Update request failed');
+      }
+    } catch (error: any) {
+      console.error('❌ Profile update error:', error);
+      
+      if (error.status === 404) {
+        this.updateProfileError = 'Profile not found. The file ID may be invalid or the profile may have been deleted.';
+      } else if (error.status === 401) {
+        this.updateProfileError = 'Unauthorized. The private key may be incorrect or insufficient permissions.';
+      } else if (error.status === 400) {
+        this.updateProfileError = 'Invalid request data. Please check your form inputs.';
+      } else if (error.status === 0) {
+        this.updateProfileError = 'Cannot connect to backend server. Please check if the server is running.';
+      } else {
+        this.updateProfileError = 'Failed to update profile. Please try again.';
+      }
+      
       this.handleApiError(error, 'Failed to update profile');
     } finally {
-      this.isLoading = false;
+      this.updateProfileLoading = false;
+      this.cdr.detectChanges();
     }
   }
 
