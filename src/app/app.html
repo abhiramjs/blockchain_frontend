@@ -1,13 +1,1 @@
-<div class="container">
-  <app-header></app-header>
-  
-  <div class="content">
-    <app-tabs (tabChange)="setActiveTab($event)"></app-tabs>
-    
-    <!-- Tab Content -->
-    <app-create-profile *ngIf="activeTab === 'create'"></app-create-profile>
-    <app-read-profile *ngIf="activeTab === 'read'"></app-read-profile>
-    <app-update-profile *ngIf="activeTab === 'update'"></app-update-profile>
-    <app-verify-profile *ngIf="activeTab === 'verify'"></app-verify-profile>
-  </div>
-</div>
+<app-company-profile></app-company-profile>
