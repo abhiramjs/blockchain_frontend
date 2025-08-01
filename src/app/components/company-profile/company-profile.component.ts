@@ -78,7 +78,12 @@ interface ProfileHistoryResponse {
     created_at: string;
     updated_at: string;
   };
-  edit_history: any[];
+  edit_history: Array<{
+    changed_fields: string[];
+    old_values: any;
+    new_values: any;
+    changed_at: string;
+  }>;
   signature_verified: boolean;
   blockchain_ref: string;
   data_hash: string;
@@ -93,6 +98,11 @@ interface RegulatorProfileData {
     profile_hash: string;
     public_key: string;
     signature: string;
+    change_info?: {
+      changed_fields: string[];
+      old_values: any;
+      new_values: any;
+    };
   }>;
 }
 
@@ -137,6 +147,7 @@ export class CompanyProfileComponent implements OnInit {
   updateProfileError: string = '';
   updateProfileSuccess: string = '';
   profileUpdateResponse: ProfileUpdateResponse | null = null;
+  privateKeyValidated: boolean = false;
 
   // Regulator Profile specific states
   regulatorProfileLoading: boolean = false;
@@ -151,11 +162,15 @@ export class CompanyProfileComponent implements OnInit {
     private http: HttpClient,
     private cdr: ChangeDetectorRef
   ) {
-    this.initializeForms();
   }
 
   ngOnInit() {
     this.testBackendConnection();
+    this.initializeForms();
+    this.restoreActiveTab();
+    
+    // Reset private key validation on component initialization
+    this.privateKeyValidated = false;
   }
 
   private async testBackendConnection() {
@@ -292,14 +307,51 @@ export class CompanyProfileComponent implements OnInit {
   // Tab management
   setActiveTab(tab: string) {
     this.activeTab = tab;
+    this.saveActiveTab(tab);
     this.clearMessages();
     
-    if (tab === 'read') {
+    // Reset private key validation when switching to update tab
+    if (tab === 'update') {
+      this.privateKeyValidated = false;
+      this.currentProfile = null;
+      this.fileId = '';
+      this.publicKey = '';
+      this.updateProfileError = '';
+      this.updateProfileSuccess = '';
+    } else if (tab === 'read') {
       // Load single latest profile when switching to Read tab
       this.loadSingleLatestProfile();
     } else if (tab === 'regulator') {
       // Load regulator profile data with history when switching to Regulator tab
       this.loadRegulatorProfileData();
+    }
+  }
+
+  // Save active tab to localStorage
+  private saveActiveTab(tab: string) {
+    try {
+      localStorage.setItem('companyProfileActiveTab', tab);
+    } catch (error) {
+      console.warn('Could not save active tab to localStorage:', error);
+    }
+  }
+
+  // Restore active tab from localStorage
+  private restoreActiveTab() {
+    try {
+      const savedTab = localStorage.getItem('companyProfileActiveTab');
+      if (savedTab && ['create', 'read', 'update', 'regulator'].includes(savedTab)) {
+        this.activeTab = savedTab;
+        
+        // Load data for the restored tab if needed
+        if (savedTab === 'read') {
+          this.loadSingleLatestProfile();
+        } else if (savedTab === 'regulator') {
+          this.loadRegulatorProfileData();
+        }
+      }
+    } catch (error) {
+      console.warn('Could not restore active tab from localStorage:', error);
     }
   }
 
@@ -408,15 +460,48 @@ export class CompanyProfileComponent implements OnInit {
         console.log('📡 History response:', historyResponse);
 
         if (historyResponse) {
-          // Create history array from the current profile data
-          const historyArray = [{
-            version: historyResponse.metadata.version,
-            profile_data: historyResponse.profile_data,
-            timestamp: historyResponse.metadata.timestamp,
-            profile_hash: historyResponse.metadata.profile_hash,
-            public_key: historyResponse.metadata.public_key,
-            signature: historyResponse.metadata.signature
-          }];
+          // Create history array from the edit history
+          const historyArray: Array<{
+            version: number;
+            profile_data: any;
+            timestamp: string;
+            profile_hash: string;
+            public_key: string;
+            signature: string;
+            change_info?: {
+              changed_fields: string[];
+              old_values: any;
+              new_values: any;
+            };
+          }> = historyResponse.edit_history.map((entry, index) => {
+            const version = historyResponse.metadata.version - (historyResponse.edit_history.length - index - 1);
+            return {
+              version: version,
+              profile_data: entry.new_values,
+              timestamp: entry.changed_at,
+              profile_hash: historyResponse.metadata.profile_hash,
+              public_key: historyResponse.metadata.public_key,
+              signature: historyResponse.metadata.signature,
+              change_info: {
+                changed_fields: entry.changed_fields,
+                old_values: entry.old_values,
+                new_values: entry.new_values
+              }
+            };
+          });
+
+          // Add the initial version if no edit history exists
+          if (historyArray.length === 0) {
+            historyArray.push({
+              version: historyResponse.metadata.version,
+              profile_data: historyResponse.profile_data,
+              timestamp: historyResponse.metadata.timestamp,
+              profile_hash: historyResponse.metadata.profile_hash,
+              public_key: historyResponse.metadata.public_key,
+              signature: historyResponse.metadata.signature
+              // No change_info for initial version
+            });
+          }
 
           this.regulatorProfileData = {
             current_profile: latestResponse.profile_data,
@@ -578,6 +663,7 @@ export class CompanyProfileComponent implements OnInit {
           this.populateUpdateForm(this.currentProfile);
         }
         
+        this.privateKeyValidated = true;
         this.updateProfileSuccess = 'Private key validated successfully. Profile loaded for editing.';
         console.log('📝 Profile loaded for editing:', this.currentProfile);
       } else {
@@ -662,6 +748,7 @@ export class CompanyProfileComponent implements OnInit {
         this.fileId = '';
         this.publicKey = '';
         this.profileUpdateResponse = null;
+        this.privateKeyValidated = false;
         
         this.showSuccess('Profile updated successfully! New version created and stored on blockchain.');
       } else {
@@ -895,5 +982,52 @@ export class CompanyProfileComponent implements OnInit {
 
   getSelectedLastUpdated(): string {
     return this.latestProfileData?.metadata.updated_at || 'N/A';
+  }
+
+  // Field change tracking helper methods
+  isFieldChanged(historyEntry: any, fieldName: string): boolean {
+    if (!historyEntry.change_info) return false;
+    return historyEntry.change_info.changed_fields.includes(fieldName);
+  }
+
+  getFieldChangeType(historyEntry: any, fieldName: string): string {
+    if (!this.isFieldChanged(historyEntry, fieldName)) return '';
+    
+    const oldValue = this.getFieldOldValue(historyEntry, fieldName);
+    const newValue = this.getFieldNewValue(historyEntry, fieldName);
+    
+    if (oldValue === null || oldValue === undefined || oldValue === '') {
+      return 'added';
+    } else if (newValue === null || newValue === undefined || newValue === '') {
+      return 'removed';
+    } else {
+      return 'modified';
+    }
+  }
+
+  getFieldOldValue(historyEntry: any, fieldName: string): any {
+    if (!historyEntry.change_info) return null;
+    return historyEntry.change_info.old_values[fieldName];
+  }
+
+  getFieldNewValue(historyEntry: any, fieldName: string): any {
+    if (!historyEntry.change_info) return null;
+    return historyEntry.change_info.new_values[fieldName];
+  }
+
+  getFieldChangeTypeDetailed(historyEntry: any, fieldName: string): string {
+    const changeType = this.getFieldChangeType(historyEntry, fieldName);
+    switch (changeType) {
+      case 'added': return 'Added';
+      case 'removed': return 'Removed';
+      case 'modified': return 'Modified';
+      default: return '';
+    }
+  }
+
+  formatFieldValue(value: any): string {
+    if (value === null || value === undefined) return 'N/A';
+    if (Array.isArray(value)) return value.join(', ');
+    return String(value);
   }
 } 

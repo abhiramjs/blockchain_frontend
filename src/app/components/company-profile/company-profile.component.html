@@ -73,7 +73,6 @@
 <div class="loading-overlay" *ngIf="isLoading">
   <div class="loading-spinner">
     <div class="spinner"></div>
-    <p>Loading...</p>
   </div>
 </div>
 
@@ -322,10 +321,10 @@
 
             <!-- Submit Button -->
              <div class="form-actions">
-               <button type="submit" class="btn btn-primary" [disabled]="createForm.invalid || isLoading">
-                 <span *ngIf="!isLoading">🚀 Create Profile</span>
-                 <span *ngIf="isLoading">⏳ Creating...</span>
-               </button>
+                           <button type="submit" class="btn btn-primary" [disabled]="createForm.invalid || isLoading">
+              <span *ngIf="!isLoading"> Create Profile</span>
+              <span *ngIf="isLoading"></span>
+            </button>
              </div>
            </div>
          </form>
@@ -440,7 +439,6 @@
         <div class="loading-state" *ngIf="readProfileLoading">
           <div class="loading-spinner">
             <div class="spinner"></div>
-            <p>Loading single latest profile...</p>
           </div>
         </div>
 
@@ -599,12 +597,11 @@
         <div class="loading-overlay" *ngIf="updateProfileLoading">
           <div class="loading-spinner">
             <div class="spinner"></div>
-            <p>Processing...</p>
           </div>
         </div>
 
         <!-- Private Key Form -->
-        <div class="private-key-section" *ngIf="!currentProfile && !updateProfileLoading">
+        <div class="private-key-section" *ngIf="!privateKeyValidated && !updateProfileLoading">
           <div class="form-card">
             <h2>🔐 Private Key Authentication</h2>
             <p>Enter your private key to access and edit your profile</p>
@@ -639,17 +636,17 @@
               </div>
 
               <div class="form-actions">
-                <button type="submit" class="btn btn-primary" [disabled]="privateKeyForm.invalid || updateProfileLoading">
-                  <span *ngIf="!updateProfileLoading">🔓 Validate & Load Profile</span>
-                  <span *ngIf="updateProfileLoading">⏳ Validating...</span>
-                </button>
+                            <button type="submit" class="btn btn-primary" [disabled]="privateKeyForm.invalid || updateProfileLoading">
+              <span *ngIf="!updateProfileLoading">🔓 Validate & Load Profile</span>
+              <span *ngIf="updateProfileLoading"></span>
+            </button>
               </div>
             </form>
           </div>
         </div>
 
         <!-- Update Profile Form -->
-        <div class="update-form-section" *ngIf="currentProfile && !updateProfileLoading">
+        <div class="update-form-section" *ngIf="privateKeyValidated && currentProfile && !updateProfileLoading">
           <div class="form-card">
             <div class="profile-info">
               <h2>📝 Edit Profile: {{ currentProfile.company_name }}</h2>
@@ -869,10 +866,10 @@
 
               <!-- Submit Button -->
               <div class="form-actions">
-                <button type="submit" class="btn btn-primary" [disabled]="updateForm.invalid || updateProfileLoading">
-                  <span *ngIf="!updateProfileLoading">💾 Update Profile</span>
-                  <span *ngIf="updateProfileLoading">⏳ Updating...</span>
-                </button>
+                            <button type="submit" class="btn btn-primary" [disabled]="updateForm.invalid || updateProfileLoading">
+              <span *ngIf="!updateProfileLoading">💾 Update Profile</span>
+              <span *ngIf="updateProfileLoading"></span>
+            </button>
               </div>
             </form>
           </div>
@@ -891,8 +888,9 @@
 
         <!-- Loading State -->
         <div *ngIf="regulatorProfileLoading" class="loading-section">
-          <div class="loading-spinner">⏳</div>
-          <p>Loading regulator profile data...</p>
+          <div class="loading-spinner">
+            <div class="spinner"></div>
+          </div>
         </div>
 
         <!-- Error State -->
@@ -1014,6 +1012,42 @@
                   <div class="detail-row">
                     <span class="label">Signature:</span>
                     <span class="value hash-value">{{ version.signature }}</span>
+                  </div>
+                </div>
+
+                <!-- Field Changes Summary -->
+                <div *ngIf="version.change_info && version.change_info.changed_fields.length > 0" class="change-summary">
+                  <h4>🔍 Field Changes in This Version</h4>
+                  <div class="changed-fields-list">
+                    <div *ngFor="let field of version.change_info.changed_fields" class="changed-field">
+                      <span class="field-name">{{ field }}</span>
+                      <span class="change-type-badge" [class]="'change-type-' + getFieldChangeType(version, field)">
+                        {{ getFieldChangeTypeDetailed(version, field) }}
+                      </span>
+                    </div>
+                  </div>
+                  
+                  <!-- Detailed Changes -->
+                  <div class="detailed-changes">
+                    <h5>Detailed Changes:</h5>
+                    <div *ngFor="let field of version.change_info.changed_fields" class="field-change-item">
+                      <div class="field-header">
+                        <span class="field-name">{{ field }}</span>
+                        <span class="change-type-badge" [class]="'change-type-' + getFieldChangeType(version, field)">
+                          {{ getFieldChangeTypeDetailed(version, field) }}
+                        </span>
+                      </div>
+                      <div class="change-values">
+                        <div class="old-value">
+                          <span class="label">Old Value:</span>
+                          <span class="value">{{ formatFieldValue(getFieldOldValue(version, field)) }}</span>
+                        </div>
+                        <div class="new-value">
+                          <span class="label">New Value:</span>
+                          <span class="value">{{ formatFieldValue(getFieldNewValue(version, field)) }}</span>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
                 

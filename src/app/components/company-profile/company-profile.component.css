@@ -417,4 +417,151 @@ body { font-family: sans-serif; background: #f8f9fa; color: #333; }
   color: #2c3e50;
   margin-bottom: 15px;
   font-size: 1.1rem;
+}
+
+/* Field Change Tracking Styles */
+.change-summary {
+  background: #f8f9fa;
+  border-radius: 8px;
+  padding: 20px;
+  margin-bottom: 20px;
+  border-left: 4px solid #667eea;
+}
+
+.change-summary h4 {
+  color: #2c3e50;
+  margin-bottom: 15px;
+  font-size: 1.1rem;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.changed-fields-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.changed-field {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: white;
+  border-radius: 6px;
+  padding: 8px 12px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.field-name {
+  font-weight: 600;
+  color: #495057;
+  font-size: 0.9rem;
+}
+
+.change-type-badge {
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.change-type-added {
+  background: #d4edda;
+  color: #155724;
+}
+
+.change-type-removed {
+  background: #f8d7da;
+  color: #721c24;
+}
+
+.change-type-modified {
+  background: #fff3cd;
+  color: #856404;
+}
+
+.detailed-changes {
+  border-top: 1px solid #dee2e6;
+  padding-top: 15px;
+}
+
+.detailed-changes h5 {
+  color: #2c3e50;
+  margin-bottom: 15px;
+  font-size: 1rem;
+}
+
+.field-change-item {
+  background: white;
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  padding: 15px;
+  margin-bottom: 10px;
+}
+
+.field-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #f8f9fa;
+}
+
+.change-values {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 15px;
+}
+
+.old-value, .new-value {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.old-value .label, .new-value .label {
+  font-weight: 600;
+  color: #495057;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+}
+
+.old-value .value {
+  color: #dc3545;
+  font-family: monospace;
+  font-size: 0.9rem;
+  background: #f8f9fa;
+  padding: 4px 8px;
+  border-radius: 4px;
+  word-break: break-all;
+}
+
+.new-value .value {
+  color: #28a745;
+  font-family: monospace;
+  font-size: 0.9rem;
+  background: #f8f9fa;
+  padding: 4px 8px;
+  border-radius: 4px;
+  word-break: break-all;
+}
+
+/* Responsive adjustments for field changes */
+@media (max-width: 768px) {
+  .change-values {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+  
+  .changed-fields-list {
+    flex-direction: column;
+  }
+  
+  .changed-field {
+    justify-content: space-between;
+  }
 } 
