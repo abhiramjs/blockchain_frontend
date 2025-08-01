@@ -452,7 +452,7 @@ export class CompanyProfileComponent implements OnInit {
         // Get the file_id from the latest profile
         const fileId = latestResponse.metadata.file_id;
         
-        // Now get the complete history for this profile
+        // Now get the complete history for this profile using the new backend logic
         const historyResponse = await this.http.get<ProfileHistoryResponse>(
           `${this.API_BASE_URL}/blockchain/profiles/${fileId}`
         ).toPromise();
@@ -473,11 +473,21 @@ export class CompanyProfileComponent implements OnInit {
               old_values: any;
               new_values: any;
             };
-          }> = historyResponse.edit_history.map((entry, index) => {
-            const version = historyResponse.metadata.version - (historyResponse.edit_history.length - index - 1);
-            return {
+          }> = [];
+
+          // Process edit history entries - now these contain actual before/after data
+          historyResponse.edit_history.forEach((entry, index) => {
+            // Since backend now returns newest first, version 1 is the latest
+            const version = index + 1;
+            console.log(`📊 Processing version ${version}:`, {
+              changed_fields: entry.changed_fields,
+              old_values: entry.old_values,
+              new_values: entry.new_values
+            });
+            
+            historyArray.push({
               version: version,
-              profile_data: entry.new_values,
+              profile_data: entry.new_values, // Use new_values as the profile data for this version
               timestamp: entry.changed_at,
               profile_hash: historyResponse.metadata.profile_hash,
               public_key: historyResponse.metadata.public_key,
@@ -487,21 +497,39 @@ export class CompanyProfileComponent implements OnInit {
                 old_values: entry.old_values,
                 new_values: entry.new_values
               }
-            };
+            });
           });
 
           // Add the initial version if no edit history exists
           if (historyArray.length === 0) {
+            // Create initial version with change_info showing "empty" to "current" state
+            const initialProfileData = historyResponse.profile_data;
+            const emptyProfileData = this.createEmptyProfileData();
+            const allFields = Object.keys(initialProfileData);
+            
+            console.log('📊 Creating initial version with change_info:', {
+              allFields,
+              emptyProfileData,
+              initialProfileData
+            });
+            
             historyArray.push({
-              version: historyResponse.metadata.version,
-              profile_data: historyResponse.profile_data,
+              version: 1, // Latest version is version 1
+              profile_data: initialProfileData,
               timestamp: historyResponse.metadata.timestamp,
               profile_hash: historyResponse.metadata.profile_hash,
               public_key: historyResponse.metadata.public_key,
-              signature: historyResponse.metadata.signature
-              // No change_info for initial version
+              signature: historyResponse.metadata.signature,
+              change_info: {
+                changed_fields: allFields, // All fields are considered "added" in initial version
+                old_values: emptyProfileData,
+                new_values: initialProfileData
+              }
             });
           }
+
+          // Reverse the array so latest version appears at the top
+          historyArray.reverse();
 
           this.regulatorProfileData = {
             current_profile: latestResponse.profile_data,
@@ -540,6 +568,8 @@ export class CompanyProfileComponent implements OnInit {
       this.cdr.detectChanges();
     }
   }
+
+
 
 
 
@@ -1029,5 +1059,92 @@ export class CompanyProfileComponent implements OnInit {
     if (value === null || value === undefined) return 'N/A';
     if (Array.isArray(value)) return value.join(', ');
     return String(value);
+  }
+
+  // Add helper method for template
+  objectKeys = Object.keys;
+
+  // Create empty profile data for initial version comparison
+  createEmptyProfileData(): any {
+    return {
+      company_name: '',
+      location: '',
+      contact: '',
+      size: '',
+      established: '',
+      revenue: '',
+      competitive_position: '',
+      market_segments: '',
+      technology_focus: '',
+      key_markets: '',
+      customer_segments: '',
+      partnerships: '',
+      certifications: '',
+      sales_channels: ''
+    };
+  }
+
+  // Enhanced helper methods for side-by-side comparison
+  getProfileComparisonData(historyEntry: any): any {
+    if (!historyEntry.change_info) {
+      return {
+        version: historyEntry.version,
+        timestamp: historyEntry.timestamp,
+        before: historyEntry.profile_data,
+        after: historyEntry.profile_data,
+        changedFields: [],
+        hasChanges: false
+      };
+    }
+
+    return {
+      version: historyEntry.version,
+      timestamp: historyEntry.timestamp,
+      before: historyEntry.change_info.old_values,
+      after: historyEntry.change_info.new_values,
+      changedFields: historyEntry.change_info.changed_fields,
+      hasChanges: true
+    };
+  }
+
+  isFieldChangedInComparison(changedFields: string[], fieldName: string): boolean {
+    const isChanged = changedFields.includes(fieldName);
+    console.log(`🔍 Field change check: ${fieldName} -> ${isChanged ? 'CHANGED' : 'unchanged'}`);
+    return isChanged;
+  }
+
+  getFieldValue(profileData: any, fieldName: string): any {
+    if (!profileData) return null;
+    return profileData[fieldName];
+  }
+
+  formatFieldValueForComparison(value: any): string {
+    if (value === null || value === undefined || value === '') {
+      return '';
+    }
+    if (typeof value === 'string' && value.trim() === '') {
+      return '';
+    }
+    return String(value);
+  }
+
+  getFieldDisplayName(fieldName: string): string {
+    const fieldNames: { [key: string]: string } = {
+      'company_name': 'Company Name',
+      'location': 'Location',
+      'contact': 'Contact',
+      'size': 'Size',
+      'established': 'Established',
+      'revenue': 'Revenue',
+      'market_segments': 'Market Segments',
+      'technology_focus': 'Technology Focus',
+      'key_markets': 'Key Markets',
+      'customer_segments': 'Customer Segments',
+      'competitive_position': 'Competitive Position',
+      'partnerships': 'Partnerships',
+      'certifications': 'Certifications',
+      'sales_channels': 'Sales Channels'
+    };
+    return fieldNames[fieldName] || fieldName;
   }
 } 

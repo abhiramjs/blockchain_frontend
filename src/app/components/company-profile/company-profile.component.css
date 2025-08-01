@@ -396,9 +396,26 @@ body { font-family: sans-serif; background: #f8f9fa; color: #333; }
   font-size: 1.3rem;
 }
 
+.version-badge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 16px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  background: #e5e7eb;
+  color: #374151;
+  margin-right: 8px;
+}
+
+.version-badge.latest {
+  background: #10b981;
+  color: white;
+}
+
 .timestamp {
-  color: #6c757d;
-  font-size: 0.9rem;
+  margin: 0;
+  color: #6b7280;
+  font-size: 0.875rem;
 }
 
 .version-details {
@@ -564,4 +581,73 @@ body { font-family: sans-serif; background: #f8f9fa; color: #333; }
   .changed-field {
     justify-content: space-between;
   }
+} 
+
+.comparison-section {
+  margin: 24px 0;
+}
+
+.comparison-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  margin-bottom: 16px;
+}
+
+.comparison-column {
+  background: #f8fafd;
+  border: 1px solid #e3e8f0;
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.comparison-column .column-header {
+  font-weight: bold;
+  margin-bottom: 12px;
+}
+
+.profile-table {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.field-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 4px 0;
+  border-bottom: 1px solid #e3e8f0;
+}
+
+.field-row:last-child {
+  border-bottom: none;
+}
+
+.field-label {
+  font-weight: 500;
+  color: #4a5568;
+}
+
+.field-value {
+  color: #2d3748;
+}
+
+.field-row.changed {
+  background: #e3f0ff;
+  border-radius: 4px;
+}
+
+.no-changes-message {
+  text-align: center;
+  padding: 16px;
+  background: #f8fafd;
+  border: 1px solid #e3e8f0;
+  border-radius: 8px;
+  margin-top: 12px;
+}
+
+.no-changes-message p {
+  margin: 0;
+  color: #6b7280;
+  font-style: italic;
 } 

@@ -994,10 +994,13 @@
             </div>
             
             <div class="history-timeline">
-              <div *ngFor="let version of regulatorProfileData.history; let i = index" class="history-item">
+              <div class="history-item" *ngFor="let version of regulatorProfileData.history; let i = index">
                 <div class="version-header">
-                  <h3>Version {{ version.version }}</h3>
-                  <span class="timestamp">{{ version.timestamp | date:'medium' }}</span>
+                  <h3>
+                    <span *ngIf="version.version === 1" class="version-badge latest">Latest Version</span>
+                    <span *ngIf="version.version !== 1" class="version-badge">Version {{ version.version }}</span>
+                  </h3>
+                  <p class="timestamp">{{ version.timestamp | date:'MMM d, y, h:mm:ss a' }}</p>
                 </div>
                 
                 <div class="version-details">
@@ -1026,26 +1029,52 @@
                       </span>
                     </div>
                   </div>
+                </div>
+
+                <!-- Side-by-side Before/After Comparison -->
+                <div class="comparison-section">
+                  <h4>📊 Profile Comparison</h4>
+                  <div class="comparison-grid">
+                    <!-- Before Table -->
+                    <div class="comparison-column">
+                      <div class="column-header">Before</div>
+                      <div class="profile-table">
+                        <div *ngFor="let key of objectKeys(version.change_info ? version.change_info.old_values : createEmptyProfileData())" 
+                             class="field-row" 
+                             [class.changed]="isFieldChangedInComparison(version.change_info?.changed_fields || [], key)">
+                          <span class="field-name">{{ getFieldDisplayName(key) }}</span>
+                          <span class="field-value">
+                            {{ formatFieldValueForComparison(version.change_info ? version.change_info.old_values[key] : '') }}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <!-- After Table -->
+                    <div class="comparison-column">
+                      <div class="column-header">After</div>
+                      <div class="profile-table">
+                        <div *ngFor="let key of objectKeys(version.change_info ? version.change_info.new_values : version.profile_data)" 
+                             class="field-row" 
+                             [class.changed]="isFieldChangedInComparison(version.change_info?.changed_fields || [], key)">
+                          <span class="field-name">{{ getFieldDisplayName(key) }}</span>
+                          <span class="field-value">
+                            {{ formatFieldValueForComparison(version.change_info ? version.change_info.new_values[key] : version.profile_data[key]) }}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                   
-                  <!-- Detailed Changes -->
-                  <div class="detailed-changes">
-                    <h5>Detailed Changes:</h5>
-                    <div *ngFor="let field of version.change_info.changed_fields" class="field-change-item">
-                      <div class="field-header">
-                        <span class="field-name">{{ field }}</span>
+                  <!-- Change Summary -->
+                  <div *ngIf="version.change_info && version.change_info.changed_fields.length > 0" class="change-summary">
+                    <h5>🔍 Changes in This Version:</h5>
+                    <div class="changed-fields-list">
+                      <div *ngFor="let field of version.change_info.changed_fields" class="changed-field">
+                        <span class="field-name">{{ getFieldDisplayName(field) }}</span>
                         <span class="change-type-badge" [class]="'change-type-' + getFieldChangeType(version, field)">
                           {{ getFieldChangeTypeDetailed(version, field) }}
                         </span>
-                      </div>
-                      <div class="change-values">
-                        <div class="old-value">
-                          <span class="label">Old Value:</span>
-                          <span class="value">{{ formatFieldValue(getFieldOldValue(version, field)) }}</span>
-                        </div>
-                        <div class="new-value">
-                          <span class="label">New Value:</span>
-                          <span class="value">{{ formatFieldValue(getFieldNewValue(version, field)) }}</span>
-                        </div>
                       </div>
                     </div>
                   </div>
