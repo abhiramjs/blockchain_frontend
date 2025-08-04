@@ -1,0 +1,723 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Profile Verification</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+    
+    body {
+      margin: 0;
+      padding: 10px;
+      font-family: Arial, sans-serif;
+      font-size: 16px;
+      color: #333;
+      background: #f5f5f5;
+      line-height: 1.6;
+    }
+    
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    
+    .header {
+      text-align: center;
+      margin-bottom: 25px;
+      padding-bottom: 15px;
+      border-bottom: 2px solid #eee;
+    }
+    
+    .header h1 {
+      color: #2c3e50;
+      margin: 0 0 10px 0;
+      font-size: 1.8rem;
+    }
+    
+    .header p {
+      margin: 0;
+      color: #666;
+      font-size: 1rem;
+    }
+    
+    .loading {
+      text-align: center;
+      padding: 30px 20px;
+      color: #666;
+    }
+    
+    .loading h3 {
+      margin: 0 0 10px 0;
+      font-size: 1.3rem;
+    }
+    
+    .error {
+      background: #ffebee;
+      color: #c62828;
+      padding: 15px;
+      border-radius: 5px;
+      margin: 15px 0;
+      border-left: 4px solid #c62828;
+    }
+    
+    .profile-section {
+      margin: 15px 0;
+      padding: 15px;
+      background: #f8f9fa;
+      border-radius: 5px;
+    }
+    
+    .profile-section h3 {
+      color: #2c3e50;
+      margin-top: 0;
+      font-size: 1.3rem;
+    }
+    
+    .field {
+      display: flex;
+      flex-direction: column;
+      margin: 10px 0;
+      padding: 8px 0;
+      border-bottom: 1px solid #eee;
+    }
+    
+    .field-label {
+      font-weight: bold;
+      color: #555;
+      margin-bottom: 5px;
+      font-size: 0.9rem;
+    }
+    
+    .field-value {
+      color: #333;
+      word-break: break-word;
+    }
+    
+    .array-field {
+      margin: 5px 0;
+    }
+    
+    .array-item {
+      background: #e3f2fd;
+      padding: 5px 10px;
+      margin: 2px 0;
+      border-radius: 3px;
+      display: inline-block;
+      margin-right: 5px;
+      margin-bottom: 5px;
+      font-size: 0.9rem;
+    }
+    
+    .metadata {
+      background: #e8f5e8;
+      padding: 15px;
+      border-radius: 5px;
+      margin: 15px 0;
+    }
+    
+    .metadata h4 {
+      margin-top: 0;
+      color: #2e7d32;
+      font-size: 1.2rem;
+    }
+    
+    .metadata-item {
+      margin: 8px 0;
+      word-break: break-all;
+    }
+    
+    .metadata-item strong {
+      display: inline-block;
+      min-width: 100px;
+      font-size: 0.9rem;
+    }
+    
+    .verification-status {
+      text-align: center;
+      padding: 20px 15px;
+      margin: 15px 0;
+      border-radius: 5px;
+      font-size: 1rem;
+    }
+    
+    .verified {
+      background: #e8f5e8;
+      color: #2e7d32;
+      border-left: 4px solid #2e7d32;
+    }
+    
+    .not-verified {
+      background: #ffebee;
+      color: #c62828;
+      border-left: 4px solid #c62828;
+    }
+    
+    /* Responsive Design */
+    @media (min-width: 768px) {
+      body {
+        padding: 20px;
+      }
+      
+      .container {
+        padding: 30px;
+      }
+      
+      .header h1 {
+        font-size: 2.2rem;
+      }
+      
+      .header p {
+        font-size: 1.1rem;
+      }
+      
+      .field {
+        flex-direction: row;
+        align-items: flex-start;
+      }
+      
+      .field-label {
+        width: 200px;
+        margin-bottom: 0;
+        margin-right: 15px;
+        flex-shrink: 0;
+      }
+      
+      .field-value {
+        flex: 1;
+      }
+      
+      .metadata-item strong {
+        min-width: 120px;
+      }
+      
+      .loading {
+        padding: 40px;
+      }
+      
+      .loading h3 {
+        font-size: 1.5rem;
+      }
+      
+      .profile-section h3 {
+        font-size: 1.4rem;
+      }
+      
+      .metadata h4 {
+        font-size: 1.3rem;
+      }
+      
+      .verification-status {
+        padding: 25px 20px;
+        font-size: 1.1rem;
+      }
+    }
+    
+    @media (min-width: 1024px) {
+      .container {
+        max-width: 1000px;
+        padding: 40px;
+      }
+      
+      .header h1 {
+        font-size: 2.5rem;
+      }
+      
+      .header p {
+        font-size: 1.2rem;
+      }
+      
+      .field-label {
+        width: 250px;
+      }
+      
+      .metadata-item strong {
+        min-width: 150px;
+      }
+    }
+    
+    /* Mobile-specific adjustments */
+    @media (max-width: 767px) {
+      body {
+        padding: 5px;
+        font-size: 14px;
+      }
+      
+      .container {
+        padding: 15px;
+        margin: 5px;
+      }
+      
+      .header h1 {
+        font-size: 1.5rem;
+      }
+      
+      .header p {
+        font-size: 0.9rem;
+      }
+      
+      .loading {
+        padding: 20px 15px;
+      }
+      
+      .loading h3 {
+        font-size: 1.2rem;
+      }
+      
+      .profile-section {
+        padding: 12px;
+      }
+      
+      .profile-section h3 {
+        font-size: 1.2rem;
+      }
+      
+      .metadata {
+        padding: 12px;
+      }
+      
+      .metadata h4 {
+        font-size: 1.1rem;
+      }
+      
+      .verification-status {
+        padding: 15px 12px;
+        font-size: 0.9rem;
+      }
+      
+      .array-item {
+        font-size: 0.8rem;
+        padding: 4px 8px;
+      }
+      
+      .metadata-item strong {
+        min-width: 80px;
+        font-size: 0.8rem;
+      }
+    }
+    
+    /* Extra small devices */
+    @media (max-width: 480px) {
+      body {
+        font-size: 13px;
+      }
+      
+      .container {
+        padding: 10px;
+        margin: 2px;
+      }
+      
+      .header h1 {
+        font-size: 1.3rem;
+      }
+      
+      .header p {
+        font-size: 0.8rem;
+      }
+      
+      .loading {
+        padding: 15px 10px;
+      }
+      
+      .loading h3 {
+        font-size: 1.1rem;
+      }
+      
+      .profile-section {
+        padding: 10px;
+      }
+      
+      .profile-section h3 {
+        font-size: 1.1rem;
+      }
+      
+      .metadata {
+        padding: 10px;
+      }
+      
+      .metadata h4 {
+        font-size: 1rem;
+      }
+      
+      .verification-status {
+        padding: 12px 10px;
+        font-size: 0.8rem;
+      }
+      
+      .array-item {
+        font-size: 0.75rem;
+        padding: 3px 6px;
+      }
+      
+      .metadata-item strong {
+        min-width: 70px;
+        font-size: 0.75rem;
+      }
+    }
+    
+    /* Print styles */
+    @media print {
+      body {
+        background: white;
+        padding: 0;
+      }
+      
+      .container {
+        box-shadow: none;
+        border: 1px solid #ccc;
+      }
+      
+      .verification-status {
+        border: 1px solid #ccc;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>🔍 Profile Verification</h1>
+      <p>Verifying blockchain-stored company profile</p>
+    </div>
+
+    <div id="loading" class="loading">
+      <h3>Loading profile data...</h3>
+      <p>Please wait while we fetch the profile from the blockchain.</p>
+    </div>
+
+    <div id="error" class="error" style="display: none;">
+      <h3>❌ Error Loading Profile</h3>
+      <p id="error-message"></p>
+    </div>
+
+    <div id="profile-content" style="display: none;">
+      <div class="verification-status" id="verification-status">
+        <h3 id="status-title">Verification Status</h3>
+        <p id="status-message">Checking signature verification...</p>
+      </div>
+
+      <div class="metadata" id="metadata-section">
+        <h4>📋 Profile Metadata</h4>
+        <div class="metadata-item"><strong>File ID:</strong> <span id="file-id"></span></div>
+        <div class="metadata-item"><strong>Version:</strong> <span id="version"></span></div>
+        <div class="metadata-item"><strong>Public Key:</strong> <span id="public-key"></span></div>
+        <div class="metadata-item"><strong>Profile Hash:</strong> <span id="profile-hash"></span></div>
+        <div class="metadata-item"><strong>Created:</strong> <span id="created-at"></span></div>
+        <div class="metadata-item"><strong>Updated:</strong> <span id="updated-at"></span></div>
+      </div>
+
+      <div class="profile-section">
+        <h3>🏢 Company Profile Data</h3>
+        <div id="profile-fields"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // API base URL
+    const API_BASE_URL = 'http://localhost:3000';
+    
+    // Get DID from URL parameters
+    function getDidFromUrl() {
+      // Try multiple ways to get the DID parameter
+      let did = null;
+      
+      // Method 1: Try to get from hash fragment
+      if (window.location.hash) {
+        const hashParams = new URLSearchParams(window.location.hash.substring(1));
+        did = hashParams.get('did');
+        console.log('🔍 Method 1 - Hash params:', hashParams.toString(), 'DID:', did);
+      }
+      
+      // Method 2: Try to get from search params
+      if (!did && window.location.search) {
+        const searchParams = new URLSearchParams(window.location.search);
+        did = searchParams.get('did');
+        console.log('🔍 Method 2 - Search params:', searchParams.toString(), 'DID:', did);
+      }
+      
+      // Method 3: Try to parse from the full URL
+      if (!did) {
+        const fullUrl = window.location.href;
+        console.log('🔍 Method 3 - Full URL:', fullUrl);
+        
+        // Look for did= in the URL
+        const didMatch = fullUrl.match(/did=([^&#]+)/);
+        if (didMatch) {
+          did = didMatch[1];
+          console.log('🔍 Method 3 - Found DID:', did);
+        }
+      }
+      
+      // Method 4: Try to parse from hash fragment with different patterns
+      if (!did && window.location.hash) {
+        const hash = window.location.hash;
+        console.log('🔍 Method 4 - Hash:', hash);
+        
+        // Try different patterns
+        const patterns = [
+          /#\/verify\?did=([^&#]+)/,
+          /#\/verify\?did=([^&]+)/,
+          /did=([^&#]+)/,
+          /did=([^&]+)/
+        ];
+        
+        for (const pattern of patterns) {
+          const match = hash.match(pattern);
+          if (match) {
+            did = match[1];
+            console.log('🔍 Method 4 - Pattern matched:', pattern, 'DID:', did);
+            break;
+          }
+        }
+      }
+      
+      return did;
+    }
+    
+    // Extract file ID from DID
+    function extractFileIdFromDid(did) {
+      if (!did) return null;
+      const match = did.match(/did:hedera:(.+)/);
+      if (!match) return null;
+      
+      const fileId = match[1];
+      console.log('🔍 File ID from DID:', fileId);
+      
+      return fileId;
+    }
+    
+    // Fetch profile data using file ID
+    async function fetchProfileDataByFileId(fileId) {
+      try {
+        console.log('🔍 Fetching profile data for file ID:', fileId);
+        
+        // Use the endpoint that gets profile by file ID
+        const response = await fetch(`${API_BASE_URL}/blockchain/profiles/${fileId}`);
+        
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        const data = await response.json();
+        console.log('📡 Profile data received:', data);
+        
+        if (data.profile_data && data.metadata) {
+          return data;
+        } else {
+          throw new Error('No valid profile data received');
+        }
+      } catch (error) {
+        console.error('❌ Error fetching profile:', error);
+        throw error;
+      }
+    }
+    
+    // Fetch latest available profile to get the correct file ID
+    async function fetchLatestAvailableProfile() {
+      try {
+        console.log('🔍 Fetching latest available profile...');
+        
+        const response = await fetch(`${API_BASE_URL}/blockchain/latest-available`);
+        
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        const data = await response.json();
+        console.log('📡 Latest available profile data:', data);
+        
+        if (data.success && data.metadata && data.metadata.file_id) {
+          return data.metadata.file_id;
+        } else {
+          throw new Error('No valid profile data received');
+        }
+      } catch (error) {
+        console.error('❌ Error fetching latest available profile:', error);
+        throw error;
+      }
+    }
+    
+    // Display profile data
+    function displayProfileData(data) {
+      const profileData = data.profile_data;
+      const metadata = data.metadata;
+      
+      // Update verification status
+      const statusDiv = document.getElementById('verification-status');
+      const statusTitle = document.getElementById('status-title');
+      const statusMessage = document.getElementById('status-message');
+      
+      if (data.signature_verified) {
+        statusDiv.className = 'verification-status verified';
+        statusTitle.textContent = '✅ Profile Verified';
+        statusMessage.textContent = 'This profile has been verified and is authentic.';
+      } else {
+        statusDiv.className = 'verification-status not-verified';
+        statusTitle.textContent = '⚠️ Verification Failed';
+        statusMessage.textContent = 'This profile could not be verified.';
+      }
+      
+      // Update metadata
+      document.getElementById('file-id').textContent = metadata.file_id;
+      document.getElementById('version').textContent = metadata.version;
+      document.getElementById('public-key').textContent = metadata.public_key;
+      document.getElementById('profile-hash').textContent = metadata.profile_hash;
+      document.getElementById('created-at').textContent = new Date(metadata.created_at).toLocaleString();
+      document.getElementById('updated-at').textContent = new Date(metadata.updated_at).toLocaleString();
+      
+      // Display profile fields
+      const profileFields = document.getElementById('profile-fields');
+      profileFields.innerHTML = '';
+      
+      const fields = [
+        { key: 'company_name', label: 'Company Name' },
+        { key: 'location', label: 'Location' },
+        { key: 'contact', label: 'Contact' },
+        { key: 'size', label: 'Company Size' },
+        { key: 'established', label: 'Established' },
+        { key: 'revenue', label: 'Revenue' },
+        { key: 'competitive_position', label: 'Competitive Position' }
+      ];
+      
+      const arrayFields = [
+        { key: 'market_segments', label: 'Market Segments' },
+        { key: 'technology_focus', label: 'Technology Focus' },
+        { key: 'key_markets', label: 'Key Markets' },
+        { key: 'customer_segments', label: 'Customer Segments' },
+        { key: 'partnerships', label: 'Partnerships' },
+        { key: 'certifications', label: 'Certifications' },
+        { key: 'sales_channels', label: 'Sales Channels' }
+      ];
+      
+      // Display regular fields
+      fields.forEach(field => {
+        if (profileData[field.key]) {
+          const fieldDiv = document.createElement('div');
+          fieldDiv.className = 'field';
+          fieldDiv.innerHTML = `
+            <div class="field-label">${field.label}:</div>
+            <div class="field-value">${profileData[field.key]}</div>
+          `;
+          profileFields.appendChild(fieldDiv);
+        }
+      });
+      
+      // Display array fields
+      arrayFields.forEach(field => {
+        if (profileData[field.key] && Array.isArray(profileData[field.key]) && profileData[field.key].length > 0) {
+          const fieldDiv = document.createElement('div');
+          fieldDiv.className = 'field array-field';
+          fieldDiv.innerHTML = `
+            <div class="field-label">${field.label}:</div>
+            <div class="field-value">
+              ${profileData[field.key].map(item => `<span class="array-item">${item}</span>`).join('')}
+            </div>
+          `;
+          profileFields.appendChild(fieldDiv);
+        }
+      });
+      
+      // Show the profile content
+      document.getElementById('profile-content').style.display = 'block';
+    }
+    
+    // Show error message
+    function showError(message) {
+      document.getElementById('loading').style.display = 'none';
+      document.getElementById('error').style.display = 'block';
+      document.getElementById('error-message').textContent = message;
+    }
+    
+    // Main initialization
+    async function init() {
+      try {
+        // Hide loading and show content
+        document.getElementById('loading').style.display = 'none';
+        
+        // Get DID from URL
+        const did = getDidFromUrl();
+        console.log('🔍 DID from URL:', did);
+        
+        if (!did) {
+          showError('No DID parameter found in URL. Please scan the QR code again.');
+          return;
+        }
+        
+        // Extract file ID from DID
+        const fileId = extractFileIdFromDid(did);
+        console.log('🔍 File ID from DID:', fileId);
+        
+        if (!fileId) {
+          showError('Invalid DID format. Expected format: did:hedera:{file_id}');
+          return;
+        }
+        
+        // Try to fetch profile data using the file ID from DID
+        let profileData = null;
+        let usedFallback = false;
+        
+        try {
+          console.log('🔍 Attempting to fetch profile with file ID from DID:', fileId);
+          profileData = await fetchProfileDataByFileId(fileId);
+          console.log('✅ Successfully fetched profile with DID file ID');
+        } catch (error) {
+          console.log('⚠️ Failed to fetch profile with DID file ID, trying latest available...');
+          console.log('❌ Error details:', error.message);
+          
+          // If that fails, try to get the latest available profile's file ID
+          try {
+            const latestFileId = await fetchLatestAvailableProfile();
+            console.log('🔍 Latest available file ID:', latestFileId);
+            
+            if (latestFileId === fileId) {
+              showError('Profile not found. The file ID in the URL does not match any profile in the database.');
+              return;
+            }
+            
+            // Try to fetch profile with the latest available file ID
+            console.log('🔍 Attempting to fetch profile with latest file ID:', latestFileId);
+            profileData = await fetchProfileDataByFileId(latestFileId);
+            usedFallback = true;
+            console.log('✅ Successfully fetched profile with latest file ID');
+            
+          } catch (latestError) {
+            console.error('❌ Error fetching latest available profile:', latestError);
+            showError(`Failed to load profile: ${error.message}`);
+            return;
+          }
+        }
+        
+        // Display the profile data
+        if (profileData) {
+          displayProfileData(profileData);
+          
+          // Show a warning if we used a different file ID
+          if (usedFallback) {
+            const statusDiv = document.getElementById('verification-status');
+            const statusTitle = document.getElementById('status-title');
+            const statusMessage = document.getElementById('status-message');
+            
+            statusDiv.className = 'verification-status not-verified';
+            statusTitle.textContent = '⚠️ Profile Found (Different File ID)';
+            statusMessage.textContent = `The file ID in the URL (${fileId}) was not found. Showing the latest available profile instead.`;
+          }
+        }
+        
+      } catch (error) {
+        console.error('❌ Initialization error:', error);
+        showError(`Failed to load profile: ${error.message}`);
+      }
+    }
+    
+    // Start the application
+    init();
+  </script>
+</body>
+</html> 
