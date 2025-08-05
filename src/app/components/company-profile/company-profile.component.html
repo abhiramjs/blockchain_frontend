@@ -25,33 +25,21 @@
 <nav class="tab-navigation">
   <div class="tab-container">
     <div class="tabs">
-      <button 
-        class="tab" 
-        [class.active]="activeTab === 'create'"
-        (click)="setActiveTab('create')">
+      <button class="tab" [class.active]="activeTab === 'create'" (click)="onTabClick('create')">
         <span class="tab-icon">➕</span>
         <span class="tab-label">Create Profile</span>
       </button>
-      <button 
-        class="tab" 
-        [class.active]="activeTab === 'read'"
-        (click)="setActiveTab('read')">
+      <button class="tab" [class.active]="activeTab === 'read'" (click)="onTabClick('read')">
         <span class="tab-icon">📖</span>
         <span class="tab-label">Read Profile</span>
       </button>
-      <button 
-        class="tab" 
-        [class.active]="activeTab === 'update'"
-        (click)="setActiveTab('update')">
+      <button class="tab" [class.active]="activeTab === 'update'" (click)="onTabClick('update')">
         <span class="tab-icon">✏️</span>
         <span class="tab-label">Update Profile</span>
       </button>
-      <button 
-        class="tab" 
-        [class.active]="activeTab === 'regulator'"
-        (click)="setActiveTab('regulator')">
+      <button class="tab" [class.active]="activeTab === 'regulator'" (click)="onTabClick('regulator')">
         <span class="tab-icon">🔍</span>
-        <span class="tab-label">Regulator Profile</span>
+        <span class="tab-label">Regulatory Profile</span>
       </button>
     </div>
   </div>
@@ -79,7 +67,7 @@
 <!-- Tab Content -->
 <main class="tab-content">
   <div class="content-wrapper">
-    
+
     <!-- CREATE PROFILE TAB -->
     <div *ngIf="activeTab === 'create'" class="tab-panel">
       <div class="create-profile-container">
@@ -93,55 +81,40 @@
         <form [formGroup]="createForm" (ngSubmit)="createProfile()" class="form-section">
           <div class="form-card">
             <h2>📋 Company Profile Form</h2>
-            
+
             <!-- Company Information -->
             <div class="form-group">
               <label for="company_name">Company Name *</label>
-              <input 
-                type="text" 
-                id="company_name"
-                formControlName="company_name"
-                class="form-input"
+              <input type="text" id="company_name" formControlName="company_name" class="form-input"
                 placeholder="Enter company name">
-              <div class="error-message" *ngIf="createForm.get('company_name')?.invalid && createForm.get('company_name')?.touched">
+              <div class="error-message"
+                *ngIf="createForm.get('company_name')?.invalid && createForm.get('company_name')?.touched">
                 Company name is required
               </div>
             </div>
 
             <div class="form-group">
               <label for="location">Location *</label>
-              <input 
-                type="text" 
-                id="location"
-                formControlName="location"
-                class="form-input"
+              <input type="text" id="location" formControlName="location" class="form-input"
                 placeholder="Enter company location">
-              <div class="error-message" *ngIf="createForm.get('location')?.invalid && createForm.get('location')?.touched">
+              <div class="error-message"
+                *ngIf="createForm.get('location')?.invalid && createForm.get('location')?.touched">
                 Location is required
               </div>
             </div>
 
             <div class="form-group">
               <label for="contact">Contact Information *</label>
-              <input 
-                type="text" 
-                id="contact"
-                formControlName="contact"
-                class="form-input"
-                placeholder="Email | Phone">
-              <div class="error-message" *ngIf="createForm.get('contact')?.invalid && createForm.get('contact')?.touched">
+              <input type="text" id="contact" formControlName="contact" class="form-input" placeholder="Email | Phone">
+              <div class="error-message"
+                *ngIf="createForm.get('contact')?.invalid && createForm.get('contact')?.touched">
                 Contact information is required
               </div>
             </div>
 
             <div class="form-group">
               <label for="size">Company Size *</label>
-              <input 
-                type="text" 
-                id="size"
-                formControlName="size"
-                class="form-input"
-                placeholder="e.g., 500+ employees">
+              <input type="text" id="size" formControlName="size" class="form-input" placeholder="e.g., 500+ employees">
               <div class="error-message" *ngIf="createForm.get('size')?.invalid && createForm.get('size')?.touched">
                 Company size is required
               </div>
@@ -149,26 +122,20 @@
 
             <div class="form-group">
               <label for="established">Year Established *</label>
-              <input 
-                type="text" 
-                id="established"
-                formControlName="established"
-                class="form-input"
+              <input type="text" id="established" formControlName="established" class="form-input"
                 placeholder="e.g., 2015">
-              <div class="error-message" *ngIf="createForm.get('established')?.invalid && createForm.get('established')?.touched">
+              <div class="error-message"
+                *ngIf="createForm.get('established')?.invalid && createForm.get('established')?.touched">
                 Year established is required
               </div>
             </div>
 
             <div class="form-group">
               <label for="revenue">Revenue Range *</label>
-              <input 
-                type="text" 
-                id="revenue"
-                formControlName="revenue"
-                class="form-input"
+              <input type="text" id="revenue" formControlName="revenue" class="form-input"
                 placeholder="e.g., $50M - $100M">
-              <div class="error-message" *ngIf="createForm.get('revenue')?.invalid && createForm.get('revenue')?.touched">
+              <div class="error-message"
+                *ngIf="createForm.get('revenue')?.invalid && createForm.get('revenue')?.touched">
                 Revenue range is required
               </div>
             </div>
@@ -178,14 +145,11 @@
               <label>Market Segments</label>
               <div formArrayName="market_segments" class="array-inputs">
                 <div *ngFor="let segment of marketSegmentsArray.controls; let i = index" class="array-item">
-                  <input 
-                    type="text" 
-                    [formControlName]="i"
-                    class="form-input"
-                    placeholder="Enter market segment">
+                  <input type="text" [formControlName]="i" class="form-input" placeholder="Enter market segment">
                   <button type="button" class="remove-btn" (click)="removeArrayItem(marketSegmentsArray, i)">❌</button>
                 </div>
-                <button type="button" class="add-btn" (click)="addArrayItem(marketSegmentsArray)">➕ Add Market Segment</button>
+                <button type="button" class="add-btn" (click)="addArrayItem(marketSegmentsArray)">➕ Add Market
+                  Segment</button>
               </div>
             </div>
 
@@ -194,14 +158,11 @@
               <label>Technology Focus</label>
               <div formArrayName="technology_focus" class="array-inputs">
                 <div *ngFor="let tech of technologyFocusArray.controls; let i = index" class="array-item">
-                  <input 
-                    type="text" 
-                    [formControlName]="i"
-                    class="form-input"
-                    placeholder="Enter technology focus">
+                  <input type="text" [formControlName]="i" class="form-input" placeholder="Enter technology focus">
                   <button type="button" class="remove-btn" (click)="removeArrayItem(technologyFocusArray, i)">❌</button>
                 </div>
-                <button type="button" class="add-btn" (click)="addArrayItem(technologyFocusArray)">➕ Add Technology Focus</button>
+                <button type="button" class="add-btn" (click)="addArrayItem(technologyFocusArray)">➕ Add Technology
+                  Focus</button>
               </div>
             </div>
 
@@ -210,11 +171,7 @@
               <label>Key Markets</label>
               <div formArrayName="key_markets" class="array-inputs">
                 <div *ngFor="let market of keyMarketsArray.controls; let i = index" class="array-item">
-                  <input 
-                    type="text" 
-                    [formControlName]="i"
-                    class="form-input"
-                    placeholder="Enter key market">
+                  <input type="text" [formControlName]="i" class="form-input" placeholder="Enter key market">
                   <button type="button" class="remove-btn" (click)="removeArrayItem(keyMarketsArray, i)">❌</button>
                 </div>
                 <button type="button" class="add-btn" (click)="addArrayItem(keyMarketsArray)">➕ Add Key Market</button>
@@ -226,25 +183,21 @@
               <label>Customer Segments</label>
               <div formArrayName="customer_segments" class="array-inputs">
                 <div *ngFor="let segment of customerSegmentsArray.controls; let i = index" class="array-item">
-                  <input 
-                    type="text" 
-                    [formControlName]="i"
-                    class="form-input"
-                    placeholder="Enter customer segment">
-                  <button type="button" class="remove-btn" (click)="removeArrayItem(customerSegmentsArray, i)">❌</button>
+                  <input type="text" [formControlName]="i" class="form-input" placeholder="Enter customer segment">
+                  <button type="button" class="remove-btn"
+                    (click)="removeArrayItem(customerSegmentsArray, i)">❌</button>
                 </div>
-                <button type="button" class="add-btn" (click)="addArrayItem(customerSegmentsArray)">➕ Add Customer Segment</button>
+                <button type="button" class="add-btn" (click)="addArrayItem(customerSegmentsArray)">➕ Add Customer
+                  Segment</button>
               </div>
             </div>
 
             <div class="form-group">
               <label for="competitive_position">Competitive Position *</label>
-              <textarea 
-                id="competitive_position"
-                formControlName="competitive_position"
-                class="form-textarea"
+              <textarea id="competitive_position" formControlName="competitive_position" class="form-textarea"
                 placeholder="Describe your competitive position in the market"></textarea>
-              <div class="error-message" *ngIf="createForm.get('competitive_position')?.invalid && createForm.get('competitive_position')?.touched">
+              <div class="error-message"
+                *ngIf="createForm.get('competitive_position')?.invalid && createForm.get('competitive_position')?.touched">
                 Competitive position is required
               </div>
             </div>
@@ -254,14 +207,11 @@
               <label>Partnerships</label>
               <div formArrayName="partnerships" class="array-inputs">
                 <div *ngFor="let partner of partnershipsArray.controls; let i = index" class="array-item">
-                  <input 
-                    type="text" 
-                    [formControlName]="i"
-                    class="form-input"
-                    placeholder="Enter partnership">
+                  <input type="text" [formControlName]="i" class="form-input" placeholder="Enter partnership">
                   <button type="button" class="remove-btn" (click)="removeArrayItem(partnershipsArray, i)">❌</button>
                 </div>
-                <button type="button" class="add-btn" (click)="addArrayItem(partnershipsArray)">➕ Add Partnership</button>
+                <button type="button" class="add-btn" (click)="addArrayItem(partnershipsArray)">➕ Add
+                  Partnership</button>
               </div>
             </div>
 
@@ -270,14 +220,11 @@
               <label>Certifications</label>
               <div formArrayName="certifications" class="array-inputs">
                 <div *ngFor="let cert of certificationsArray.controls; let i = index" class="array-item">
-                  <input 
-                    type="text" 
-                    [formControlName]="i"
-                    class="form-input"
-                    placeholder="Enter certification">
+                  <input type="text" [formControlName]="i" class="form-input" placeholder="Enter certification">
                   <button type="button" class="remove-btn" (click)="removeArrayItem(certificationsArray, i)">❌</button>
                 </div>
-                <button type="button" class="add-btn" (click)="addArrayItem(certificationsArray)">➕ Add Certification</button>
+                <button type="button" class="add-btn" (click)="addArrayItem(certificationsArray)">➕ Add
+                  Certification</button>
               </div>
             </div>
 
@@ -286,14 +233,11 @@
               <label>Sales Channels</label>
               <div formArrayName="sales_channels" class="array-inputs">
                 <div *ngFor="let channel of salesChannelsArray.controls; let i = index" class="array-item">
-                  <input 
-                    type="text" 
-                    [formControlName]="i"
-                    class="form-input"
-                    placeholder="Enter sales channel">
+                  <input type="text" [formControlName]="i" class="form-input" placeholder="Enter sales channel">
                   <button type="button" class="remove-btn" (click)="removeArrayItem(salesChannelsArray, i)">❌</button>
                 </div>
-                <button type="button" class="add-btn" (click)="addArrayItem(salesChannelsArray)">➕ Add Sales Channel</button>
+                <button type="button" class="add-btn" (click)="addArrayItem(salesChannelsArray)">➕ Add Sales
+                  Channel</button>
               </div>
             </div>
 
@@ -301,127 +245,127 @@
             <div class="form-group">
               <label for="private_key">Private Key *</label>
               <div class="private-key-section">
-                <input 
-                  type="password" 
-                  id="private_key"
-                  formControlName="private_key"
-                  class="form-input"
+                <input type="password" id="private_key" formControlName="private_key" class="form-input"
                   placeholder="Enter your private key">
-                <button type="button" class="btn btn-secondary" (click)="generatePrivateKey()" style="margin-left: 10px;">
+                <button type="button" class="btn btn-secondary" (click)="generatePrivateKey()"
+                  style="margin-left: 10px;">
                   🔑 Generate Private Key
                 </button>
               </div>
-              <div class="error-message" *ngIf="createForm.get('private_key')?.invalid && createForm.get('private_key')?.touched">
+              <div class="error-message"
+                *ngIf="createForm.get('private_key')?.invalid && createForm.get('private_key')?.touched">
                 Private key is required
               </div>
               <div class="security-note">
-                <p><strong>Security Note:</strong> This private key will be used to authorize future profile updates. Store it securely!</p>
+                <p><strong>Security Note:</strong> This private key will be used to authorize future profile updates.
+                  Store it securely!</p>
               </div>
             </div>
 
             <!-- Submit Button -->
-             <div class="form-actions">
-                           <button type="submit" class="btn btn-primary" [disabled]="createForm.invalid || isLoading">
-              <span *ngIf="!isLoading"> Create Profile</span>
-              <span *ngIf="isLoading"></span>
-            </button>
-             </div>
-           </div>
-         </form>
+            <div class="form-actions">
+              <button type="submit" class="btn btn-primary" [disabled]="createForm.invalid || isLoading">
+                <span *ngIf="!isLoading"> Create Profile</span>
+                <span *ngIf="isLoading"></span>
+              </button>
+            </div>
+          </div>
+        </form>
 
-         <!-- Create Profile Success Display -->
-         <div class="create-success-section" *ngIf="showCreateSuccess && createdProfileData">
-           <div class="success-card">
-             <div class="success-header">
-               <div class="success-icon">✅</div>
-               <h2>Profile Created Successfully!</h2>
-               <p>Your company profile has been stored on the blockchain. Please securely save your private key.</p>
-             </div>
+        <!-- Create Profile Success Display -->
+        <div class="create-success-section" *ngIf="showCreateSuccess && createdProfileData">
+          <div class="success-card">
+            <div class="success-header">
+              <div class="success-icon">✅</div>
+              <h2>Profile Created Successfully!</h2>
+              <p>Your company profile has been stored on the blockchain. Please securely save your private key.</p>
+            </div>
 
-             <!-- Security Warning -->
-             <div class="security-warning">
-               <div class="warning-icon">⚠️</div>
-               <div class="warning-content">
-                 <h3>Security Warning</h3>
-                 <p><strong>IMPORTANT:</strong> Your private key is required for all future profile updates and cannot be recovered by the backend. Please save it securely!</p>
-                 <ul>
-                   <li>Store your private key in a secure location</li>
-                   <li>Never share your private key with anyone</li>
-                   <li>Consider using a password manager or hardware wallet</li>
-                   <li>Make multiple backups in different secure locations</li>
-                 </ul>
-               </div>
-             </div>
+            <!-- Security Warning -->
+            <div class="security-warning">
+              <div class="warning-icon">⚠️</div>
+              <div class="warning-content">
+                <h3>Security Warning</h3>
+                <p><strong>IMPORTANT:</strong> Your private key is required for all future profile updates and cannot be
+                  recovered by the backend. Please save it securely!</p>
+                <ul>
+                  <li>Store your private key in a secure location</li>
+                  <li>Never share your private key with anyone</li>
+                  <li>Consider using a password manager or hardware wallet</li>
+                  <li>Make multiple backups in different secure locations</li>
+                </ul>
+              </div>
+            </div>
 
-             <!-- Profile Information -->
-             <div class="profile-info-grid">
-               <div class="info-item">
-                 <label>File ID</label>
-                 <div class="info-value">
-                   <span class="value-text">{{ createdProfileData.file_id }}</span>
-                   <button class="copy-btn" (click)="copyToClipboard(createdProfileData.file_id, 'File ID')">
-                     📋 Copy
-                   </button>
-                 </div>
-               </div>
+            <!-- Profile Information -->
+            <div class="profile-info-grid">
+              <div class="info-item">
+                <label>File ID</label>
+                <div class="info-value">
+                  <span class="value-text">{{ createdProfileData.file_id }}</span>
+                  <button class="copy-btn" (click)="copyToClipboard(createdProfileData.file_id, 'File ID')">
+                    📋 Copy
+                  </button>
+                </div>
+              </div>
 
-               <div class="info-item">
-                 <label>Public Key</label>
-                 <div class="info-value">
-                   <span class="value-text">{{ createdProfileData.public_key }}</span>
-                   <button class="copy-btn" (click)="copyToClipboard(createdProfileData.public_key, 'Public Key')">
-                     📋 Copy
-                   </button>
-                 </div>
-               </div>
+              <div class="info-item">
+                <label>Public Key</label>
+                <div class="info-value">
+                  <span class="value-text">{{ createdProfileData.public_key }}</span>
+                  <button class="copy-btn" (click)="copyToClipboard(createdProfileData.public_key, 'Public Key')">
+                    📋 Copy
+                  </button>
+                </div>
+              </div>
 
-               <div class="info-item private-key-item">
-                 <label>Private Key</label>
-                 <div class="info-value">
-                   <span class="value-text private-key">{{ createdProfileData.private_key }}</span>
-                   <div class="private-key-actions">
-                     <button class="copy-btn" (click)="copyToClipboard(createdProfileData.private_key, 'Private Key')">
-                       📋 Copy
-                     </button>
-                     <button class="download-btn" (click)="downloadPrivateKey()">
-                       💾 Download
-                     </button>
-                   </div>
-                 </div>
-               </div>
+              <div class="info-item private-key-item">
+                <label>Private Key</label>
+                <div class="info-value">
+                  <span class="value-text private-key">{{ createdProfileData.private_key }}</span>
+                  <div class="private-key-actions">
+                    <button class="copy-btn" (click)="copyToClipboard(createdProfileData.private_key, 'Private Key')">
+                      📋 Copy
+                    </button>
+                    <button class="download-btn" (click)="downloadPrivateKey()">
+                      💾 Download
+                    </button>
+                  </div>
+                </div>
+              </div>
 
-                                     <div class="info-item" *ngIf="createdProfileData.verification_url">
-                        <label>Verification URL</label>
-                        <div class="info-value">
-                          <a [href]="createdProfileData.verification_url" target="_blank" class="verification-link">
-                            🔗 View Profile
-                          </a>
-                        </div>
-                      </div>
-                    </div>
+              <div class="info-item" *ngIf="createdProfileData.verification_url">
+                <label>Verification URL</label>
+                <div class="info-value">
+                  <a [href]="createdProfileData.verification_url" target="_blank" class="verification-link">
+                    🔗 View Profile
+                  </a>
+                </div>
+              </div>
+            </div>
 
-                    <!-- QR Code Section -->
-                    <div class="qr-section" *ngIf="createdProfileData.qr_code_data">
-                      <h3>QR Code</h3>
-                      <div class="qr-container">
-                        <div class="qr-code-text">{{ createdProfileData.qr_code_data }}</div>
-                        <p>Scan this QR code to view your profile</p>
-                      </div>
-                    </div>
+            <!-- QR Code Section -->
+            <div class="qr-section" *ngIf="createdProfileData.qr_code_data">
+              <h3>QR Code</h3>
+              <div class="qr-container">
+                <div class="qr-code-text">{{ createdProfileData.qr_code_data }}</div>
+                <p>Scan this QR code to view your profile</p>
+              </div>
+            </div>
 
-             <!-- Action Buttons -->
-             <div class="success-actions">
-               <button class="btn btn-secondary" (click)="closeCreateSuccess()">
-                 ✨ Create Another Profile
-               </button>
-               <button class="btn btn-primary" (click)="setActiveTab('update')">
-                 ✏️ Update Profile
-               </button>
-             </div>
-           </div>
-         </div>
-       </div>
-     </div>
+            <!-- Action Buttons -->
+            <div class="success-actions">
+              <button class="btn btn-secondary" (click)="closeCreateSuccess()">
+                ✨ Create Another Profile
+              </button>
+              <button class="btn btn-primary" (click)="setActiveTab('update')">
+                ✏️ Update Profile
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
 
     <!-- READ PROFILE TAB -->
     <div *ngIf="activeTab === 'read'" class="tab-panel">
@@ -433,7 +377,7 @@
         </div>
 
         <!-- Debug Info -->
-        
+
 
         <!-- Loading State -->
         <div class="loading-state" *ngIf="readProfileLoading">
@@ -527,7 +471,8 @@
               <div class="tags" *ngIf="currentProfile.customer_segments.length > 0">
                 <span class="tag" *ngFor="let segment of currentProfile.customer_segments">{{ segment }}</span>
               </div>
-              <p *ngIf="currentProfile.customer_segments.length === 0" class="no-data">No customer segments specified</p>
+              <p *ngIf="currentProfile.customer_segments.length === 0" class="no-data">No customer segments specified
+              </p>
             </div>
 
             <div class="profile-section">
@@ -569,6 +514,61 @@
             <p>No company profiles have been created yet. Create a profile first to view it here.</p>
           </div>
         </div>
+
+
+
+
+
+        <!-- QR Code Display Section -->
+        <div class="qr-code-section" *ngIf="activeTab === 'read' && currentProfile && !readProfileLoading && !hideQRCodeSection">
+          <div class="qr-code-card">
+            <h3>📱 QR Code for Verification</h3>
+            
+            <div class="qr-code-container">
+              <img [src]="qrCodeDataUrl" alt="QR Code" class="qr-code-image">
+            </div>
+            
+            <div class="qr-code-details">
+              <div class="detail-item">
+                <strong>URL:</strong> 
+                <span class="url-text">{{ qrCodeUrl }}</span>
+                <button class="copy-btn" (click)="copyToClipboard(qrCodeUrl, 'Verification URL')">📋 Copy</button>
+              </div>
+              
+              <div class="detail-item">
+                <strong>DID:</strong> 
+                <span class="did-text">did:hedera:{{ latestProfileData?.metadata?.file_id }}</span>
+                <button class="copy-btn" (click)="copyToClipboard('did:hedera:' + latestProfileData?.metadata?.file_id, 'DID')">📋 Copy</button>
+              </div>
+              
+              <div class="detail-item">
+                <strong>File ID:</strong> 
+                <span class="file-id-text">{{ latestProfileData?.metadata?.file_id }}</span>
+                <button class="copy-btn" (click)="copyToClipboard(latestProfileData?.metadata?.file_id || '', 'File ID')">📋 Copy</button>
+              </div>
+              
+              <div class="detail-item">
+                <strong>Public Key:</strong> 
+                <span class="public-key-text">{{ latestProfileData?.metadata?.public_key }}</span>
+                <button class="copy-btn" (click)="copyToClipboard(latestProfileData?.metadata?.public_key || '', 'Public Key')">📋 Copy</button>
+              </div>
+            </div>
+            
+            <div class="qr-code-actions">
+              <button class="btn btn-primary" (click)="openVerificationPage()">
+                🔗 Open Verification Page
+              </button>
+              <button class="btn btn-secondary" (click)="hideQRCode()">
+                ❌ Hide QR Code
+              </button>
+            </div>
+            
+            <p class="qr-code-note">
+              Scan this QR code with any mobile device to verify the company profile
+            </p>
+          </div>
+        </div>
+
       </div>
     </div>
 
@@ -605,13 +605,14 @@
           <div class="form-card">
             <h2>🔐 Private Key Authentication</h2>
             <p>Enter your private key to access and edit your profile</p>
-            
+
             <!-- Security Warning -->
             <div class="security-warning">
               <div class="warning-icon">⚠️</div>
               <div class="warning-content">
                 <h3>Security Notice</h3>
-                <p><strong>IMPORTANT:</strong> Only the original private key used during profile creation can authorize updates.</p>
+                <p><strong>IMPORTANT:</strong> Only the original private key used during profile creation can authorize
+                  updates.</p>
                 <ul>
                   <li>Enter the exact private key from your profile creation</li>
                   <li>This key is required to validate your ownership</li>
@@ -620,26 +621,24 @@
                 </ul>
               </div>
             </div>
-            
+
             <form [formGroup]="privateKeyForm" (ngSubmit)="validatePrivateKey()" class="private-key-form">
               <div class="form-group">
                 <label for="private_key">Private Key *</label>
-                <input 
-                  type="password" 
-                  id="private_key"
-                  formControlName="private_key"
-                  class="form-input"
+                <input type="password" id="private_key" formControlName="private_key" class="form-input"
                   placeholder="Enter your private key">
-                <div class="error-message" *ngIf="privateKeyForm.get('private_key')?.invalid && privateKeyForm.get('private_key')?.touched">
+                <div class="error-message"
+                  *ngIf="privateKeyForm.get('private_key')?.invalid && privateKeyForm.get('private_key')?.touched">
                   Private key is required
                 </div>
               </div>
 
               <div class="form-actions">
-                            <button type="submit" class="btn btn-primary" [disabled]="privateKeyForm.invalid || updateProfileLoading">
-              <span *ngIf="!updateProfileLoading">🔓 Validate & Load Profile</span>
-              <span *ngIf="updateProfileLoading"></span>
-            </button>
+                <button type="submit" class="btn btn-primary"
+                  [disabled]="privateKeyForm.invalid || updateProfileLoading">
+                  <span *ngIf="!updateProfileLoading">🔓 Validate & Load Profile</span>
+                  <span *ngIf="updateProfileLoading"></span>
+                </button>
               </div>
             </form>
           </div>
@@ -661,7 +660,8 @@
               <div class="success-content">
                 <h3>Profile Loaded Successfully</h3>
                 <p>Your private key has been validated. You can now edit the profile data below.</p>
-                <p><strong>Note:</strong> You must enter your private key again in the form below to authorize the update.</p>
+                <p><strong>Note:</strong> You must enter your private key again in the form below to authorize the
+                  update.</p>
               </div>
             </div>
 
@@ -669,47 +669,34 @@
               <!-- Company Information -->
               <div class="form-group">
                 <label for="update_company_name">Company Name *</label>
-                <input 
-                  type="text" 
-                  id="update_company_name"
-                  formControlName="company_name"
-                  class="form-input">
-                <div class="error-message" *ngIf="updateForm.get('company_name')?.invalid && updateForm.get('company_name')?.touched">
+                <input type="text" id="update_company_name" formControlName="company_name" class="form-input">
+                <div class="error-message"
+                  *ngIf="updateForm.get('company_name')?.invalid && updateForm.get('company_name')?.touched">
                   Company name is required
                 </div>
               </div>
 
               <div class="form-group">
                 <label for="update_location">Location *</label>
-                <input 
-                  type="text" 
-                  id="update_location"
-                  formControlName="location"
-                  class="form-input">
-                <div class="error-message" *ngIf="updateForm.get('location')?.invalid && updateForm.get('location')?.touched">
+                <input type="text" id="update_location" formControlName="location" class="form-input">
+                <div class="error-message"
+                  *ngIf="updateForm.get('location')?.invalid && updateForm.get('location')?.touched">
                   Location is required
                 </div>
               </div>
 
               <div class="form-group">
                 <label for="update_contact">Contact Information *</label>
-                <input 
-                  type="text" 
-                  id="update_contact"
-                  formControlName="contact"
-                  class="form-input">
-                <div class="error-message" *ngIf="updateForm.get('contact')?.invalid && updateForm.get('contact')?.touched">
+                <input type="text" id="update_contact" formControlName="contact" class="form-input">
+                <div class="error-message"
+                  *ngIf="updateForm.get('contact')?.invalid && updateForm.get('contact')?.touched">
                   Contact information is required
                 </div>
               </div>
 
               <div class="form-group">
                 <label for="update_size">Company Size *</label>
-                <input 
-                  type="text" 
-                  id="update_size"
-                  formControlName="size"
-                  class="form-input">
+                <input type="text" id="update_size" formControlName="size" class="form-input">
                 <div class="error-message" *ngIf="updateForm.get('size')?.invalid && updateForm.get('size')?.touched">
                   Company size is required
                 </div>
@@ -717,24 +704,18 @@
 
               <div class="form-group">
                 <label for="update_established">Year Established *</label>
-                <input 
-                  type="text" 
-                  id="update_established"
-                  formControlName="established"
-                  class="form-input">
-                <div class="error-message" *ngIf="updateForm.get('established')?.invalid && updateForm.get('established')?.touched">
+                <input type="text" id="update_established" formControlName="established" class="form-input">
+                <div class="error-message"
+                  *ngIf="updateForm.get('established')?.invalid && updateForm.get('established')?.touched">
                   Year established is required
                 </div>
               </div>
 
               <div class="form-group">
                 <label for="update_revenue">Revenue Range *</label>
-                <input 
-                  type="text" 
-                  id="update_revenue"
-                  formControlName="revenue"
-                  class="form-input">
-                <div class="error-message" *ngIf="updateForm.get('revenue')?.invalid && updateForm.get('revenue')?.touched">
+                <input type="text" id="update_revenue" formControlName="revenue" class="form-input">
+                <div class="error-message"
+                  *ngIf="updateForm.get('revenue')?.invalid && updateForm.get('revenue')?.touched">
                   Revenue range is required
                 </div>
               </div>
@@ -744,14 +725,12 @@
                 <label>Market Segments</label>
                 <div formArrayName="market_segments" class="array-inputs">
                   <div *ngFor="let segment of updateMarketSegmentsArray.controls; let i = index" class="array-item">
-                    <input 
-                      type="text" 
-                      [formControlName]="i"
-                      class="form-input"
-                      placeholder="Enter market segment">
-                    <button type="button" class="remove-btn" (click)="removeArrayItem(updateMarketSegmentsArray, i)">❌</button>
+                    <input type="text" [formControlName]="i" class="form-input" placeholder="Enter market segment">
+                    <button type="button" class="remove-btn"
+                      (click)="removeArrayItem(updateMarketSegmentsArray, i)">❌</button>
                   </div>
-                  <button type="button" class="add-btn" (click)="addArrayItem(updateMarketSegmentsArray)">➕ Add Market Segment</button>
+                  <button type="button" class="add-btn" (click)="addArrayItem(updateMarketSegmentsArray)">➕ Add Market
+                    Segment</button>
                 </div>
               </div>
 
@@ -760,14 +739,12 @@
                 <label>Technology Focus</label>
                 <div formArrayName="technology_focus" class="array-inputs">
                   <div *ngFor="let tech of updateTechnologyFocusArray.controls; let i = index" class="array-item">
-                    <input 
-                      type="text" 
-                      [formControlName]="i"
-                      class="form-input"
-                      placeholder="Enter technology focus">
-                    <button type="button" class="remove-btn" (click)="removeArrayItem(updateTechnologyFocusArray, i)">❌</button>
+                    <input type="text" [formControlName]="i" class="form-input" placeholder="Enter technology focus">
+                    <button type="button" class="remove-btn"
+                      (click)="removeArrayItem(updateTechnologyFocusArray, i)">❌</button>
                   </div>
-                  <button type="button" class="add-btn" (click)="addArrayItem(updateTechnologyFocusArray)">➕ Add Technology Focus</button>
+                  <button type="button" class="add-btn" (click)="addArrayItem(updateTechnologyFocusArray)">➕ Add
+                    Technology Focus</button>
                 </div>
               </div>
 
@@ -776,14 +753,12 @@
                 <label>Key Markets</label>
                 <div formArrayName="key_markets" class="array-inputs">
                   <div *ngFor="let market of updateKeyMarketsArray.controls; let i = index" class="array-item">
-                    <input 
-                      type="text" 
-                      [formControlName]="i"
-                      class="form-input"
-                      placeholder="Enter key market">
-                    <button type="button" class="remove-btn" (click)="removeArrayItem(updateKeyMarketsArray, i)">❌</button>
+                    <input type="text" [formControlName]="i" class="form-input" placeholder="Enter key market">
+                    <button type="button" class="remove-btn"
+                      (click)="removeArrayItem(updateKeyMarketsArray, i)">❌</button>
                   </div>
-                  <button type="button" class="add-btn" (click)="addArrayItem(updateKeyMarketsArray)">➕ Add Key Market</button>
+                  <button type="button" class="add-btn" (click)="addArrayItem(updateKeyMarketsArray)">➕ Add Key
+                    Market</button>
                 </div>
               </div>
 
@@ -792,24 +767,21 @@
                 <label>Customer Segments</label>
                 <div formArrayName="customer_segments" class="array-inputs">
                   <div *ngFor="let segment of updateCustomerSegmentsArray.controls; let i = index" class="array-item">
-                    <input 
-                      type="text" 
-                      [formControlName]="i"
-                      class="form-input"
-                      placeholder="Enter customer segment">
-                    <button type="button" class="remove-btn" (click)="removeArrayItem(updateCustomerSegmentsArray, i)">❌</button>
+                    <input type="text" [formControlName]="i" class="form-input" placeholder="Enter customer segment">
+                    <button type="button" class="remove-btn"
+                      (click)="removeArrayItem(updateCustomerSegmentsArray, i)">❌</button>
                   </div>
-                  <button type="button" class="add-btn" (click)="addArrayItem(updateCustomerSegmentsArray)">➕ Add Customer Segment</button>
+                  <button type="button" class="add-btn" (click)="addArrayItem(updateCustomerSegmentsArray)">➕ Add
+                    Customer Segment</button>
                 </div>
               </div>
 
               <div class="form-group">
                 <label for="update_competitive_position">Competitive Position *</label>
-                <textarea 
-                  id="update_competitive_position"
-                  formControlName="competitive_position"
+                <textarea id="update_competitive_position" formControlName="competitive_position"
                   class="form-textarea"></textarea>
-                <div class="error-message" *ngIf="updateForm.get('competitive_position')?.invalid && updateForm.get('competitive_position')?.touched">
+                <div class="error-message"
+                  *ngIf="updateForm.get('competitive_position')?.invalid && updateForm.get('competitive_position')?.touched">
                   Competitive position is required
                 </div>
               </div>
@@ -819,14 +791,12 @@
                 <label>Partnerships</label>
                 <div formArrayName="partnerships" class="array-inputs">
                   <div *ngFor="let partner of updatePartnershipsArray.controls; let i = index" class="array-item">
-                    <input 
-                      type="text" 
-                      [formControlName]="i"
-                      class="form-input"
-                      placeholder="Enter partnership">
-                    <button type="button" class="remove-btn" (click)="removeArrayItem(updatePartnershipsArray, i)">❌</button>
+                    <input type="text" [formControlName]="i" class="form-input" placeholder="Enter partnership">
+                    <button type="button" class="remove-btn"
+                      (click)="removeArrayItem(updatePartnershipsArray, i)">❌</button>
                   </div>
-                  <button type="button" class="add-btn" (click)="addArrayItem(updatePartnershipsArray)">➕ Add Partnership</button>
+                  <button type="button" class="add-btn" (click)="addArrayItem(updatePartnershipsArray)">➕ Add
+                    Partnership</button>
                 </div>
               </div>
 
@@ -835,14 +805,12 @@
                 <label>Certifications</label>
                 <div formArrayName="certifications" class="array-inputs">
                   <div *ngFor="let cert of updateCertificationsArray.controls; let i = index" class="array-item">
-                    <input 
-                      type="text" 
-                      [formControlName]="i"
-                      class="form-input"
-                      placeholder="Enter certification">
-                    <button type="button" class="remove-btn" (click)="removeArrayItem(updateCertificationsArray, i)">❌</button>
+                    <input type="text" [formControlName]="i" class="form-input" placeholder="Enter certification">
+                    <button type="button" class="remove-btn"
+                      (click)="removeArrayItem(updateCertificationsArray, i)">❌</button>
                   </div>
-                  <button type="button" class="add-btn" (click)="addArrayItem(updateCertificationsArray)">➕ Add Certification</button>
+                  <button type="button" class="add-btn" (click)="addArrayItem(updateCertificationsArray)">➕ Add
+                    Certification</button>
                 </div>
               </div>
 
@@ -851,14 +819,12 @@
                 <label>Sales Channels</label>
                 <div formArrayName="sales_channels" class="array-inputs">
                   <div *ngFor="let channel of updateSalesChannelsArray.controls; let i = index" class="array-item">
-                    <input 
-                      type="text" 
-                      [formControlName]="i"
-                      class="form-input"
-                      placeholder="Enter sales channel">
-                    <button type="button" class="remove-btn" (click)="removeArrayItem(updateSalesChannelsArray, i)">❌</button>
+                    <input type="text" [formControlName]="i" class="form-input" placeholder="Enter sales channel">
+                    <button type="button" class="remove-btn"
+                      (click)="removeArrayItem(updateSalesChannelsArray, i)">❌</button>
                   </div>
-                  <button type="button" class="add-btn" (click)="addArrayItem(updateSalesChannelsArray)">➕ Add Sales Channel</button>
+                  <button type="button" class="add-btn" (click)="addArrayItem(updateSalesChannelsArray)">➕ Add Sales
+                    Channel</button>
                 </div>
               </div>
 
@@ -866,10 +832,10 @@
 
               <!-- Submit Button -->
               <div class="form-actions">
-                            <button type="submit" class="btn btn-primary" [disabled]="updateForm.invalid || updateProfileLoading">
-              <span *ngIf="!updateProfileLoading">💾 Update Profile</span>
-              <span *ngIf="updateProfileLoading"></span>
-            </button>
+                <button type="submit" class="btn btn-primary" [disabled]="updateForm.invalid || updateProfileLoading">
+                  <span *ngIf="!updateProfileLoading">💾 Update Profile</span>
+                  <span *ngIf="updateProfileLoading"></span>
+                </button>
               </div>
             </form>
           </div>
@@ -882,7 +848,7 @@
       <div class="regulator-profile-container">
         <!-- Header -->
         <div class="header-section">
-          <h1>🔍 Regulator Profile</h1>
+          <h1>🔍 Regulatory Profile</h1>
           <p>Regulatory oversight and audit functionality for blockchain profiles</p>
         </div>
 
@@ -902,7 +868,8 @@
         </div>
 
         <!-- No Profile Available -->
-        <div *ngIf="!regulatorProfileLoading && !regulatorProfileError && !regulatorProfileData" class="no-profile-section">
+        <div *ngIf="!regulatorProfileLoading && !regulatorProfileError && !regulatorProfileData"
+          class="no-profile-section">
           <div class="no-profile-card">
             <div class="no-profile-icon">📋</div>
             <h2>No Profile Available</h2>
@@ -912,8 +879,9 @@
         </div>
 
         <!-- Regulator Profile Data -->
-        <div *ngIf="!regulatorProfileLoading && !regulatorProfileError && regulatorProfileData" class="regulator-content">
-          
+        <div *ngIf="!regulatorProfileLoading && !regulatorProfileError && regulatorProfileData"
+          class="regulator-content">
+
           <!-- Current Profile Section -->
           <div class="current-profile-section">
             <h2>📊 Current Profile Data</h2>
@@ -922,7 +890,7 @@
                 <h3>{{ regulatorProfileData.current_profile.company_name || 'Unnamed Company' }}</h3>
                 <span class="profile-status">Current Version</span>
               </div>
-              
+
               <div class="profile-details">
                 <div class="detail-row">
                   <span class="label">Company Name:</span>
@@ -952,7 +920,7 @@
                   <span class="label">Competitive Position:</span>
                   <span class="value">{{ regulatorProfileData.current_profile.competitive_position || 'N/A' }}</span>
                 </div>
-                
+
                 <!-- Arrays -->
                 <div class="detail-row" *ngIf="regulatorProfileData.current_profile.market_segments?.length">
                   <span class="label">Market Segments:</span>
@@ -992,7 +960,7 @@
             <div class="history-info">
               <p>Total versions: {{ regulatorProfileData.history.length }}</p>
             </div>
-            
+
             <div class="history-timeline">
               <div class="history-item" *ngFor="let version of regulatorProfileData.history; let i = index">
                 <div class="version-header">
@@ -1002,7 +970,7 @@
                   </h3>
                   <p class="timestamp">{{ version.timestamp | date:'MMM d, y, h:mm:ss a' }}</p>
                 </div>
-                
+
                 <div class="version-details">
                   <div class="detail-row">
                     <span class="label">Profile Hash:</span>
@@ -1019,7 +987,8 @@
                 </div>
 
                 <!-- Field Changes Summary -->
-                <div *ngIf="version.change_info && version.change_info.changed_fields.length > 0" class="change-summary">
+                <div *ngIf="version.change_info && version.change_info.changed_fields.length > 0"
+                  class="change-summary">
                   <h4>🔍 Field Changes in This Version</h4>
                   <div class="changed-fields-list">
                     <div *ngFor="let field of version.change_info.changed_fields" class="changed-field">
@@ -1039,35 +1008,40 @@
                     <div class="comparison-column">
                       <div class="column-header">Before</div>
                       <div class="profile-table">
-                        <div *ngFor="let key of objectKeys(version.change_info ? version.change_info.old_values : createEmptyProfileData())" 
-                             class="field-row" 
-                             [class.changed]="isFieldChangedInComparison(version.change_info?.changed_fields || [], key)">
+                        <div
+                          *ngFor="let key of objectKeys(version.change_info ? version.change_info.old_values : createEmptyProfileData())"
+                          class="field-row"
+                          [class.changed]="isFieldChangedInComparison(version.change_info?.changed_fields || [], key)">
                           <span class="field-name">{{ getFieldDisplayName(key) }}</span>
                           <span class="field-value">
-                            {{ formatFieldValueForComparison(version.change_info ? version.change_info.old_values[key] : '') }}
+                            {{ formatFieldValueForComparison(version.change_info ? version.change_info.old_values[key] :
+                            '') }}
                           </span>
                         </div>
                       </div>
                     </div>
-                    
+
                     <!-- After Table -->
                     <div class="comparison-column">
                       <div class="column-header">After</div>
                       <div class="profile-table">
-                        <div *ngFor="let key of objectKeys(version.change_info ? version.change_info.new_values : version.profile_data)" 
-                             class="field-row" 
-                             [class.changed]="isFieldChangedInComparison(version.change_info?.changed_fields || [], key)">
+                        <div
+                          *ngFor="let key of objectKeys(version.change_info ? version.change_info.new_values : version.profile_data)"
+                          class="field-row"
+                          [class.changed]="isFieldChangedInComparison(version.change_info?.changed_fields || [], key)">
                           <span class="field-name">{{ getFieldDisplayName(key) }}</span>
                           <span class="field-value">
-                            {{ formatFieldValueForComparison(version.change_info ? version.change_info.new_values[key] : version.profile_data[key]) }}
+                            {{ formatFieldValueForComparison(version.change_info ? version.change_info.new_values[key] :
+                            version.profile_data[key]) }}
                           </span>
                         </div>
                       </div>
                     </div>
                   </div>
-                  
+
                   <!-- Change Summary -->
-                  <div *ngIf="version.change_info && version.change_info.changed_fields.length > 0" class="change-summary">
+                  <div *ngIf="version.change_info && version.change_info.changed_fields.length > 0"
+                    class="change-summary">
                     <h5>🔍 Changes in This Version:</h5>
                     <div class="changed-fields-list">
                       <div *ngFor="let field of version.change_info.changed_fields" class="changed-field">
@@ -1079,7 +1053,7 @@
                     </div>
                   </div>
                 </div>
-                
+
                 <div class="version-profile-data">
                   <h4>Profile Data (Version {{ version.version }})</h4>
                   <div class="profile-details">
@@ -1111,7 +1085,7 @@
                       <span class="label">Competitive Position:</span>
                       <span class="value">{{ version.profile_data.competitive_position || 'N/A' }}</span>
                     </div>
-                    
+
                     <!-- Arrays for each version -->
                     <div class="detail-row" *ngIf="version.profile_data.market_segments?.length">
                       <span class="label">Market Segments:</span>
@@ -1151,4 +1125,4 @@
     </div>
 
   </div>
-</main> 
+</main>

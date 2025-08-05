@@ -651,3 +651,163 @@ body { font-family: sans-serif; background: #f8f9fa; color: #333; }
   color: #6b7280;
   font-style: italic;
 } 
+
+/* QR Code Section Styles */
+.qr-code-section {
+  margin: 30px 0;
+  padding: 20px;
+  background: #f8f9fa;
+  border-radius: 10px;
+  border: 2px solid #e9ecef;
+}
+
+.qr-code-card {
+  background: white;
+  padding: 25px;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  text-align: center;
+}
+
+.qr-code-card h3 {
+  color: #2c3e50;
+  margin-bottom: 20px;
+  font-size: 1.5rem;
+}
+
+.qr-code-container {
+  margin: 20px 0;
+  display: flex;
+  justify-content: center;
+}
+
+.qr-code-image {
+  max-width: 300px;
+  border: 3px solid #3498db;
+  border-radius: 8px;
+  box-shadow: 0 4px 15px rgba(52, 152, 219, 0.3);
+}
+
+.qr-code-details {
+  margin: 25px 0;
+  text-align: left;
+  background: #f8f9fa;
+  padding: 20px;
+  border-radius: 8px;
+  border-left: 4px solid #3498db;
+}
+
+.detail-item {
+  display: flex;
+  align-items: center;
+  margin: 15px 0;
+  padding: 10px;
+  background: white;
+  border-radius: 5px;
+  border: 1px solid #e9ecef;
+}
+
+.detail-item strong {
+  min-width: 80px;
+  color: #2c3e50;
+  margin-right: 15px;
+}
+
+.url-text, .did-text, .file-id-text {
+  flex: 1;
+  font-family: 'Courier New', monospace;
+  background: #f1f3f4;
+  padding: 8px 12px;
+  border-radius: 4px;
+  margin-right: 10px;
+  word-break: break-all;
+  font-size: 0.9rem;
+}
+
+.copy-btn {
+  background: #27ae60;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  transition: background-color 0.2s;
+}
+
+.copy-btn:hover {
+  background: #229954;
+}
+
+.qr-code-actions {
+  margin: 25px 0;
+  display: flex;
+  gap: 15px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.qr-code-actions .btn {
+  padding: 12px 24px;
+  font-size: 1rem;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.qr-code-actions .btn-primary {
+  background: #3498db;
+  color: white;
+  border: none;
+}
+
+.qr-code-actions .btn-primary:hover {
+  background: #2980b9;
+  transform: translateY(-1px);
+}
+
+.qr-code-actions .btn-secondary {
+  background: #95a5a6;
+  color: white;
+  border: none;
+}
+
+.qr-code-actions .btn-secondary:hover {
+  background: #7f8c8d;
+  transform: translateY(-1px);
+}
+
+.qr-code-note {
+  color: #7f8c8d;
+  font-size: 0.9rem;
+  margin-top: 20px;
+  font-style: italic;
+  text-align: center;
+}
+
+/* Responsive design for QR code */
+@media (max-width: 768px) {
+  .qr-code-image {
+    max-width: 250px;
+  }
+  
+  .detail-item {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .detail-item strong {
+    margin-bottom: 5px;
+  }
+  
+  .url-text, .did-text, .file-id-text {
+    margin-right: 0;
+    margin-bottom: 10px;
+    width: 100%;
+  }
+  
+  .qr-code-actions {
+    flex-direction: column;
+    align-items: center;
+  }
+} 

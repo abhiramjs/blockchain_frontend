@@ -2,6 +2,8 @@ import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, FormArray, Validators, ReactiveFormsModule } from '@angular/forms';
 import { HttpClient, HttpErrorResponse, HttpHeaders } from '@angular/common/http';
+import { Router } from '@angular/router';
+import * as QRCode from 'qrcode';
 
 interface CompanyProfile {
   company_name: string;
@@ -117,7 +119,6 @@ interface RegulatorProfileData {
 export class CompanyProfileComponent implements OnInit {
   // Tab management
   activeTab: string = 'create';
-  selectedProfile: string = '';
 
   // Form management
   createForm!: FormGroup;
@@ -130,6 +131,13 @@ export class CompanyProfileComponent implements OnInit {
   fileId: string = '';
   publicKey: string = '';
   privateKey: string = '';
+  
+  // QR Code state
+  qrCodeDataUrl: string = '';
+  qrCodeUrl: string = '';
+  qrCodeFileId: string = '';
+  showQRCode: boolean = false;
+  hideQRCodeSection: boolean = false;
   
   // Create Profile Success State
   showCreateSuccess: boolean = false;
@@ -160,7 +168,8 @@ export class CompanyProfileComponent implements OnInit {
   constructor(
     private fb: FormBuilder,
     private http: HttpClient,
-    private cdr: ChangeDetectorRef
+    private cdr: ChangeDetectorRef,
+    private router: Router
   ) {
   }
 
@@ -305,7 +314,7 @@ export class CompanyProfileComponent implements OnInit {
   }
 
   // Tab management
-  setActiveTab(tab: string) {
+  async setActiveTab(tab: string) {
     this.activeTab = tab;
     this.saveActiveTab(tab);
     this.clearMessages();
@@ -319,12 +328,23 @@ export class CompanyProfileComponent implements OnInit {
       this.updateProfileError = '';
       this.updateProfileSuccess = '';
     } else if (tab === 'read') {
+      // Reset QR code visibility when switching to Read tab
+      this.hideQRCodeSection = false;
       // Load single latest profile when switching to Read tab
-      this.loadSingleLatestProfile();
+      await this.loadSingleLatestProfile();
+      // Force regenerate QR code with latest data
+      await this.generateQRCode();
     } else if (tab === 'regulator') {
       // Load regulator profile data with history when switching to Regulator tab
-      this.loadRegulatorProfileData();
+      await this.loadRegulatorProfileData();
     }
+  }
+  
+  // Wrapper method for template calls
+  onTabClick(tab: string) {
+    this.setActiveTab(tab).catch(error => {
+      console.error('Error switching tabs:', error);
+    });
   }
 
   // Save active tab to localStorage
@@ -353,12 +373,6 @@ export class CompanyProfileComponent implements OnInit {
     } catch (error) {
       console.warn('Could not restore active tab from localStorage:', error);
     }
-  }
-
-  // This method is no longer needed as we're showing only the single latest profile
-  // Keeping it for backward compatibility but it's not used
-  selectProfile(fileId: string) {
-    console.log('🔍 Profile selection is disabled - showing single latest profile');
   }
 
   // API Methods
@@ -404,6 +418,9 @@ export class CompanyProfileComponent implements OnInit {
         console.log('✅ Single latest profile loaded successfully:', this.currentProfile);
         console.log('🔍 Setting readProfileLoading to false');
         this.showSuccess('Latest profile data loaded successfully');
+        
+        // Automatically generate QR code after profile data is loaded
+        await this.generateQRCode();
       } else {
         console.log('⚠️ Response received but success is false:', response);
         throw new Error('No valid response received from server');
@@ -568,14 +585,6 @@ export class CompanyProfileComponent implements OnInit {
       this.cdr.detectChanges();
     }
   }
-
-
-
-
-
-
-
-
 
   async createProfile() {
     if (this.createForm.invalid) {
@@ -771,6 +780,27 @@ export class CompanyProfileComponent implements OnInit {
         
         this.updateProfileSuccess = `Profile updated successfully! New version: ${response.new_version}, New File ID: ${response.new_file_id}`;
         
+        // Update the latest profile data with the new file ID and reload QR code
+        if (response.new_file_id) {
+          console.log('🔄 Updating QR code with new file ID:', response.new_file_id);
+          
+          // Update the latest profile data to reflect the new file ID
+          if (this.latestProfileData) {
+            this.latestProfileData.metadata.file_id = response.new_file_id;
+            this.latestProfileData.metadata.version = response.new_version;
+            this.latestProfileData.metadata.updated_at = response.timestamp;
+            this.latestProfileData.metadata.profile_hash = response.profile_hash;
+          }
+          
+          // Regenerate QR code with the new file ID
+          await this.generateQRCode();
+          
+          // Refresh latest profile data from backend to ensure we have the most up-to-date information
+          await this.refreshLatestProfileData();
+          
+          console.log('✅ QR code updated with new file ID');
+        }
+        
         this.updateForm.reset();
         this.privateKeyForm.reset();
         this.clearFormArrays(this.updateForm);
@@ -949,71 +979,6 @@ export class CompanyProfileComponent implements OnInit {
     this.createdProfileData = null;
   }
 
-  // Legacy methods for static data (keeping for compatibility)
-  getSelectedCompanyName(): string {
-    return this.currentProfile?.company_name || '';
-  }
-
-  getSelectedCompanyLocation(): string {
-    return this.currentProfile?.location || '';
-  }
-
-  getSelectedCompanyContact(): string {
-    return this.currentProfile?.contact || '';
-  }
-
-  getSelectedCompanySize(): string {
-    return this.currentProfile?.size || '';
-  }
-
-  getSelectedCompanyEstablished(): string {
-    return this.currentProfile?.established || '';
-  }
-
-  getSelectedCompanyRevenue(): string {
-    return this.currentProfile?.revenue || '';
-  }
-
-  getSelectedMarketSegments(): string[] {
-    return this.currentProfile?.market_segments || [];
-  }
-
-  getSelectedTechnologyFocus(): string[] {
-    return this.currentProfile?.technology_focus || [];
-  }
-
-  getSelectedKeyMarkets(): string[] {
-    return this.currentProfile?.key_markets || [];
-  }
-
-  getSelectedCustomerSegments(): string[] {
-    return this.currentProfile?.customer_segments || [];
-  }
-
-  getSelectedCompetitivePosition(): string {
-    return this.currentProfile?.competitive_position || '';
-  }
-
-  getSelectedPartnerships(): string[] {
-    return this.currentProfile?.partnerships || [];
-  }
-
-  getSelectedCertifications(): string[] {
-    return this.currentProfile?.certifications || [];
-  }
-
-  getSelectedSalesChannels(): string[] {
-    return this.currentProfile?.sales_channels || [];
-  }
-
-  getSelectedFileId(): string {
-    return this.latestProfileData?.metadata.file_id || 'N/A';
-  }
-
-  getSelectedLastUpdated(): string {
-    return this.latestProfileData?.metadata.updated_at || 'N/A';
-  }
-
   // Field change tracking helper methods
   isFieldChanged(historyEntry: any, fieldName: string): boolean {
     if (!historyEntry.change_info) return false;
@@ -1084,38 +1049,10 @@ export class CompanyProfileComponent implements OnInit {
     };
   }
 
-  // Enhanced helper methods for side-by-side comparison
-  getProfileComparisonData(historyEntry: any): any {
-    if (!historyEntry.change_info) {
-      return {
-        version: historyEntry.version,
-        timestamp: historyEntry.timestamp,
-        before: historyEntry.profile_data,
-        after: historyEntry.profile_data,
-        changedFields: [],
-        hasChanges: false
-      };
-    }
-
-    return {
-      version: historyEntry.version,
-      timestamp: historyEntry.timestamp,
-      before: historyEntry.change_info.old_values,
-      after: historyEntry.change_info.new_values,
-      changedFields: historyEntry.change_info.changed_fields,
-      hasChanges: true
-    };
-  }
-
   isFieldChangedInComparison(changedFields: string[], fieldName: string): boolean {
     const isChanged = changedFields.includes(fieldName);
     console.log(`🔍 Field change check: ${fieldName} -> ${isChanged ? 'CHANGED' : 'unchanged'}`);
     return isChanged;
-  }
-
-  getFieldValue(profileData: any, fieldName: string): any {
-    if (!profileData) return null;
-    return profileData[fieldName];
   }
 
   formatFieldValueForComparison(value: any): string {
@@ -1146,5 +1083,87 @@ export class CompanyProfileComponent implements OnInit {
       'sales_channels': 'Sales Channels'
     };
     return fieldNames[fieldName] || fieldName;
+  }
+
+  // Generate QR code for verification
+  async generateQRCode() {
+    console.log('🔍 Generating QR code for verification...');
+    console.log('🔍 Current latestProfileData:', this.latestProfileData);
+    
+    // Wait for profile data to be loaded if not already available
+    if (!this.latestProfileData?.metadata?.file_id) {
+      console.log('⏳ Waiting for profile data to load...');
+      return;
+    }
+    
+    // Generate the verification URL with DID using file_id
+    const fileId = this.latestProfileData?.metadata?.file_id || 'unknown';
+    console.log('🔍 Using file ID for QR code:', fileId);
+    const verificationUrl = `http://localhost:4200/verify?did=did:hedera:${fileId}`;
+    
+    try {
+      // Generate QR code
+      const qrCodeDataUrl = await QRCode.toDataURL(verificationUrl, {
+        width: 300,
+        margin: 2,
+        color: {
+          dark: '#000000',
+          light: '#FFFFFF'
+        }
+      });
+      
+      // Store QR code data for inline display
+      this.qrCodeDataUrl = qrCodeDataUrl;
+      this.qrCodeUrl = verificationUrl;
+      this.qrCodeFileId = fileId;
+      this.showQRCode = true;
+      
+      // Show QR code information
+      const qrInfo = `
+🔍 QR Code Information:
+📱 URL: ${verificationUrl}
+🆔 DID: did:hedera:${fileId}
+📋 File ID: ${fileId}
+📋 Public Key: ${this.latestProfileData?.metadata?.public_key || 'unknown'}
+    
+You can scan this QR code to verify the profile on any device.
+      `;
+      
+      console.log(qrInfo);
+      
+      // Show a success message
+      this.showSuccess('QR code generated for verification');
+    } catch (error) {
+      console.error('❌ Error generating QR code:', error);
+      this.showError('Failed to generate QR code');
+    }
+  }
+
+  // Custom method for Read Profile tab (kept for backward compatibility)
+  async navigateToFullProfile() {
+    await this.generateQRCode();
+  }
+
+  // Hide QR code section
+  hideQRCode() {
+    this.hideQRCodeSection = true;
+  }
+  
+  // Refresh latest profile data from backend
+  async refreshLatestProfileData() {
+    try {
+      console.log('🔄 Refreshing latest profile data from backend...');
+      await this.loadSingleLatestProfile();
+      console.log('✅ Latest profile data refreshed successfully');
+    } catch (error) {
+      console.error('❌ Error refreshing latest profile data:', error);
+    }
+  }
+
+  // Open verification page in new tab
+  openVerificationPage() {
+    if (this.qrCodeUrl) {
+      window.open(this.qrCodeUrl, '_blank');
+    }
   }
 } 
