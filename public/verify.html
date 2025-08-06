@@ -4,169 +4,200 @@
   <meta charset="UTF-8" />
   <title>🔍 Profile Verification</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <style>
-    * {
-      box-sizing: border-box;
-    }
+ <!-- Paste your existing HTML here -->
+<!-- Then replace your <style> tag with the updated one below -->
+<style>
+  * {
+    box-sizing: border-box;
+  }
 
-    body {
-      margin: 0;
-      padding: 0;
-      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-      background-color: #f4f6f8;
-      color: #2c3e50;
-    }
+  body {
+    margin: 0;
+    padding: 0;
+    font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #f4f6f8;
+    color: #2c3e50;
+  }
 
+  .container {
+    max-width: 960px;
+    margin: 2rem auto;
+    padding: 2rem;
+    background-color: #ffffff;
+    border-radius: 1rem;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.07);
+  }
+
+  .header {
+    text-align: center;
+    margin-bottom: 2rem;
+  }
+
+  .header h1 {
+    font-size: 2rem;
+    margin-bottom: 0.3rem;
+  }
+
+  .header p {
+    font-size: 1rem;
+    color: #666;
+  }
+
+  .refresh-btn {
+    margin-top: 1rem;
+    padding: 0.7rem 1.5rem;
+    background: linear-gradient(to right, #007bff, #0056b3);
+    border: none;
+    color: white;
+    font-weight: 600;
+    font-size: 1rem;
+    border-radius: 0.5rem;
+    cursor: pointer;
+    transition: background 0.3s ease;
+  }
+
+  .refresh-btn:hover {
+    background: linear-gradient(to right, #0056b3, #004080);
+  }
+
+  .loading,
+  .error,
+  .verification-status {
+    text-align: center;
+    padding: 1.5rem;
+    border-radius: 0.5rem;
+    margin: 1.5rem 0;
+  }
+
+  .loading {
+    background: #e0f7fa;
+    color: #006064;
+  }
+
+  .error {
+    background: #fdecea;
+    color: #c62828;
+    border-left: 5px solid #c62828;
+  }
+
+  .verified {
+    background: #e6f4ea;
+    color: #1b5e20;
+    border-left: 5px solid #1b5e20;
+  }
+
+  .not-verified {
+    background: #fff3e0;
+    color: #ef6c00;
+    border-left: 5px solid #ef6c00;
+  }
+
+  .metadata,
+  .profile-section {
+    margin: 1.5rem 0;
+    padding: 1.5rem;
+    background: #f9fafc;
+    border-radius: 0.5rem;
+    border: 1px solid #e0e0e0;
+  }
+
+  .metadata h4,
+  .profile-section h3 {
+    margin-top: 0;
+    font-size: 1.25rem;
+    color: #2c3e50;
+    border-bottom: 1px solid #ddd;
+    padding-bottom: 0.5rem;
+  }
+
+  .metadata p {
+    margin: 0.7rem 0;
+    font-size: 0.95rem;
+    overflow-wrap: break-word;
+  }
+
+  .metadata p strong {
+    display: inline-block;
+    width: 140px;
+    color: #555;
+  }
+
+  .field {
+    margin: 1rem 0;
+  }
+
+  .field-label {
+    font-weight: 600;
+    margin-bottom: 0.3rem;
+    color: #555;
+  }
+
+  .field-value {
+    background-color: #ffffff;
+    padding: 0.8rem;
+    border-radius: 0.5rem;
+    border: 1px solid #e0e0e0;
+    overflow-wrap: break-word;
+    font-size: 0.95rem;
+    white-space: pre-wrap;
+  }
+
+  .array-item {
+    display: inline-block;
+    background-color: #e3f2fd;
+    color: #01579b;
+    padding: 0.3rem 0.8rem;
+    margin: 0.3rem 0.5rem 0.3rem 0;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 500;
+  }
+
+  @media (max-width: 768px) {
     .container {
-      max-width: 960px;
-      margin: 30px auto;
-      padding: 30px;
-      background-color: #ffffff;
-      border-radius: 12px;
-      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.07);
-    }
-
-    .header {
-      text-align: center;
-      margin-bottom: 30px;
+      padding: 1.2rem;
     }
 
     .header h1 {
-      font-size: 2rem;
-      margin-bottom: 5px;
+      font-size: 1.5rem;
     }
 
-    .header p {
+    .field-label {
       font-size: 1rem;
-      color: #666;
     }
 
-    .refresh-btn {
-      margin-top: 15px;
-      padding: 10px 20px;
-      background: linear-gradient(to right, #007bff, #0056b3);
-      border: none;
-      color: white;
-      font-weight: 600;
-      font-size: 1rem;
-      border-radius: 6px;
-      cursor: pointer;
-      transition: background 0.3s ease;
-    }
-
-    .refresh-btn:hover {
-      background: linear-gradient(to right, #0056b3, #004080);
-    }
-
-    .loading,
-    .error,
-    .verification-status {
-      text-align: center;
-      padding: 20px;
-      border-radius: 8px;
-      margin: 20px 0;
-    }
-
-    .loading {
-      background: #e0f7fa;
-      color: #006064;
-    }
-
-    .error {
-      background: #fdecea;
-      color: #c62828;
-      border-left: 5px solid #c62828;
-    }
-
-    .verified {
-      background: #e6f4ea;
-      color: #1b5e20;
-      border-left: 5px solid #1b5e20;
-    }
-
-    .not-verified {
-      background: #fff3e0;
-      color: #ef6c00;
-      border-left: 5px solid #ef6c00;
-    }
-
-    .metadata,
-    .profile-section {
-      margin: 25px 0;
-      padding: 20px;
-      background: #f9fafc;
-      border-radius: 8px;
-      border: 1px solid #e0e0e0;
-    }
-
-    .metadata h4,
-    .profile-section h3 {
-      margin-top: 0;
-      font-size: 1.25rem;
-      color: #2c3e50;
-      border-bottom: 1px solid #ddd;
-      padding-bottom: 8px;
-    }
-
-    .metadata p {
-      margin: 10px 0;
+    .field-value {
       font-size: 0.95rem;
     }
 
     .metadata p strong {
-      display: inline-block;
-      width: 140px;
-      color: #555;
+      width: 100%;
+      display: block;
+      margin-bottom: 0.3rem;
     }
 
-    .field {
-      margin: 15px 0;
+    .metadata p {
+      font-size: 0.9rem;
+    }
+  }
+
+  @media (max-width: 600px) {
+    .refresh-btn {
+      width: 100%;
+      font-size: 1rem;
     }
 
-    .field-label {
-      font-weight: 600;
-      margin-bottom: 5px;
-      color: #555;
-    }
-
+    .metadata p,
     .field-value {
-      background-color: #ffffff;
-      padding: 10px;
-      border-radius: 5px;
-      border: 1px solid #e0e0e0;
-      word-break: break-word;
-      font-size: 0.95rem;
+      font-size: 0.9rem;
     }
 
     .array-item {
-      display: inline-block;
-      background-color: #e3f2fd;
-      color: #01579b;
-      padding: 5px 10px;
-      margin: 4px 6px 4px 0;
-      border-radius: 20px;
-      font-size: 0.85rem;
-      font-weight: 500;
+      font-size: 0.8rem;
     }
+  }
+</style>
 
-    @media (max-width: 768px) {
-      .container {
-        padding: 20px;
-      }
-
-      .header h1 {
-        font-size: 1.5rem;
-      }
-
-      .field-label {
-        font-size: 0.95rem;
-      }
-
-      .field-value {
-        font-size: 0.9rem;
-      }
-    }
-  </style>
 </head>
 <body>
   <div class="container">
