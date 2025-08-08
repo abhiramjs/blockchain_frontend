@@ -46,10 +46,14 @@
 </nav>
 
 <!-- Messages Section -->
-<div class="messages-container" *ngIf="errorMessage || successMessage">
+<div class="messages-container" *ngIf="errorMessage || successMessage || readableError">
   <div class="message error" *ngIf="errorMessage">
     <span class="message-icon">⚠️</span>
     <span class="message-text">{{ errorMessage }}</span>
+  </div>
+  <div class="message error" *ngIf="readableError && !errorMessage">
+    <span class="message-icon">⚠️</span>
+    <span class="message-text">{{ readableError }}</span>
   </div>
   <div class="message success" *ngIf="successMessage">
     <span class="message-icon">✅</span>
@@ -220,13 +224,22 @@
               <label>Certifications</label>
               <div formArrayName="certifications" class="array-inputs">
                 <div *ngFor="let cert of certificationsArray.controls; let i = index" class="array-item">
-                  <input type="text" [formControlName]="i" class="form-input" placeholder="Enter certification">
-                  <button type="button" class="remove-btn" (click)="removeArrayItem(certificationsArray, i)">❌</button>
+                  <div class="file-upload-container">
+                    <input type="file" (change)="onFileSelect($event, i)" class="form-input file-input" accept=".pdf,.csv,.png,.jpg,.jpeg,.docx">
+                    <div class="file-info" *ngIf="certificationFiles[i]">
+                      <span class="file-name">{{ certificationFiles[i].name }}</span>
+                      <span class="file-size">({{ (certificationFiles[i].size / 1024 / 1024).toFixed(2) }} MB)</span>
+                    </div>
+                  </div>
+                  <button type="button" class="remove-btn" (click)="removeCertificationItem(i)">❌</button>
                 </div>
-                <button type="button" class="add-btn" (click)="addArrayItem(certificationsArray)">➕ Add
-                  Certification</button>
+                <button type="button" class="add-btn" (click)="addCertificationItem()">➕ Add Certification</button>
+              </div>
+              <div class="upload-info">
+                <small>Supported formats: PDF, CSV, PNG, JPG, JPEG, DOCX (Max 25MB per file)</small>
               </div>
             </div>
+            
 
             <!-- Sales Channels -->
             <div class="form-group">
@@ -490,14 +503,40 @@
 
             <div class="profile-section">
               <h3>🏅 Certifications</h3>
-              <div class="tags" *ngIf="currentProfile.certifications.length > 0">
-                <span class="tag" *ngFor="let cert of currentProfile.certifications">{{ cert }}</span>
+              <div class="certifications-container" *ngIf="currentProfile.certifications.length > 0">
+                <div class="certification-item" *ngFor="let cert of currentProfile.certifications; let i = index">
+                  <div class="certification-info">
+                    <span class="certification-name">{{ cert.split('/').pop() || cert }}</span>
+                    <div class="certification-actions">
+                      <button class="btn btn-secondary btn-sm" (click)="loadPdfForViewing(cert)" 
+                              *ngIf="supportsInlineViewing('application/pdf')">
+                        👁️ View
+                      </button>
+                      <button class="btn btn-primary btn-sm" (click)="downloadFile(cert, cert.split('/').pop() || 'document')">
+                        📥 Download
+                      </button>
+                    </div>
+                  </div>
+                </div>
               </div>
               <p *ngIf="currentProfile.certifications.length === 0" class="no-data">No certifications specified</p>
             </div>
 
+            <!-- PDF Viewer Section -->
+            <div class="pdf-viewer-section" *ngIf="pdfUrl">
+              <div class="pdf-viewer-card">
+                <div class="pdf-viewer-header">
+                  <h3>📄 Document Viewer</h3>
+                  <button class="close-btn" (click)="clearPdfViewer()">❌ Close</button>
+                </div>
+                <div class="pdf-viewer-content">
+                  <iframe *ngIf="pdfUrl" [src]="pdfUrl" style="width:100%;height:600px;border:0"></iframe>
+                </div>
+              </div>
+            </div>
+
             <div class="profile-section">
-              <h3>📈 Sales Channels</h3>
+              <h3>�� Sales Channels</h3>
               <div class="tags" *ngIf="currentProfile.sales_channels.length > 0">
                 <span class="tag" *ngFor="let channel of currentProfile.sales_channels">{{ channel }}</span>
               </div>
@@ -805,12 +844,19 @@
                 <label>Certifications</label>
                 <div formArrayName="certifications" class="array-inputs">
                   <div *ngFor="let cert of updateCertificationsArray.controls; let i = index" class="array-item">
-                    <input type="text" [formControlName]="i" class="form-input" placeholder="Enter certification">
-                    <button type="button" class="remove-btn"
-                      (click)="removeArrayItem(updateCertificationsArray, i)">❌</button>
+                    <div class="file-upload-container">
+                      <input type="file" (change)="onUpdateFileSelect($event, i)" class="form-input file-input" accept=".pdf,.csv,.png,.jpg,.jpeg,.docx">
+                      <div class="file-info" *ngIf="updateCertificationFiles[i]">
+                        <span class="file-name">{{ updateCertificationFiles[i].name }}</span>
+                        <span class="file-size">({{ (updateCertificationFiles[i].size / 1024 / 1024).toFixed(2) }} MB)</span>
+                      </div>
+                    </div>
+                    <button type="button" class="remove-btn" (click)="removeUpdateCertificationItem(i)">❌</button>
                   </div>
-                  <button type="button" class="add-btn" (click)="addArrayItem(updateCertificationsArray)">➕ Add
-                    Certification</button>
+                  <button type="button" class="add-btn" (click)="addUpdateCertificationItem()">➕ Add Certification</button>
+                </div>
+                <div class="upload-info">
+                  <small>Supported formats: PDF, CSV, PNG, JPG, JPEG, DOCX (Max 25MB per file)</small>
                 </div>
               </div>
 
@@ -944,7 +990,24 @@
                 </div>
                 <div class="detail-row" *ngIf="regulatorProfileData.current_profile.certifications?.length">
                   <span class="label">Certifications:</span>
-                  <span class="value">{{ regulatorProfileData.current_profile.certifications.join(', ') }}</span>
+                  <div class="value">
+                    <div class="certifications-container">
+                      <div class="certification-item" *ngFor="let cert of regulatorProfileData.current_profile.certifications; let i = index">
+                        <div class="certification-info">
+                          <span class="certification-name">{{ cert.split('/').pop() || cert }}</span>
+                          <div class="certification-actions">
+                            <button class="btn btn-secondary btn-sm" (click)="loadPdfForViewing(cert)" 
+                                    *ngIf="supportsInlineViewing('application/pdf')">
+                              👁️ View
+                            </button>
+                            <button class="btn btn-primary btn-sm" (click)="downloadFile(cert, cert.split('/').pop() || 'document')">
+                              📥 Download
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
                 <div class="detail-row" *ngIf="regulatorProfileData.current_profile.sales_channels?.length">
                   <span class="label">Sales Channels:</span>
@@ -1109,7 +1172,24 @@
                     </div>
                     <div class="detail-row" *ngIf="version.profile_data.certifications?.length">
                       <span class="label">Certifications:</span>
-                      <span class="value">{{ version.profile_data.certifications.join(', ') }}</span>
+                      <div class="value">
+                        <div class="certifications-container">
+                          <div class="certification-item" *ngFor="let cert of version.profile_data.certifications; let i = index">
+                            <div class="certification-info">
+                              <span class="certification-name">{{ cert.split('/').pop() || cert }}</span>
+                              <div class="certification-actions">
+                                <button class="btn btn-secondary btn-sm" (click)="loadPdfForViewing(cert)" 
+                                        *ngIf="supportsInlineViewing('application/pdf')">
+                                  👁️ View
+                                </button>
+                                <button class="btn btn-primary btn-sm" (click)="downloadFile(cert, cert.split('/').pop() || 'document')">
+                                  📥 Download
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
                     </div>
                     <div class="detail-row" *ngIf="version.profile_data.sales_channels?.length">
                       <span class="label">Sales Channels:</span>
@@ -1118,6 +1198,19 @@
                   </div>
                 </div>
               </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- PDF Viewer Section for Regulatory Profile -->
+        <div class="pdf-viewer-section" *ngIf="pdfUrl">
+          <div class="pdf-viewer-card">
+            <div class="pdf-viewer-header">
+              <h3>📄 Document Viewer</h3>
+              <button class="close-btn" (click)="clearPdfViewer()">❌ Close</button>
+            </div>
+            <div class="pdf-viewer-content">
+              <iframe *ngIf="pdfUrl" [src]="pdfUrl" style="width:100%;height:600px;border:0"></iframe>
             </div>
           </div>
         </div>

@@ -4,8 +4,6 @@
   <meta charset="UTF-8" />
   <title>🔍 Profile Verification</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
- <!-- Paste your existing HTML here -->
-<!-- Then replace your <style> tag with the updated one below -->
 <style>
   * {
     box-sizing: border-box;
@@ -153,6 +151,173 @@
     font-weight: 500;
   }
 
+  /* PDF Viewer Styles - Enhanced to match Angular component */
+  .pdf-viewer-section {
+    margin: 1.5rem 0;
+    display: none;
+  }
+
+  .pdf-viewer-card {
+    background: #ffffff;
+    border-radius: 0.5rem;
+    border: 1px solid #e0e0e0;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    overflow: hidden;
+  }
+
+  .pdf-viewer-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid #e0e0e0;
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  }
+
+  .pdf-viewer-header h3 {
+    margin: 0;
+    font-size: 1.1rem;
+    color: #2c3e50;
+    font-weight: 600;
+  }
+
+  .close-btn {
+    background: #dc3545;
+    color: white;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 0.3rem;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: all 0.3s ease;
+    font-weight: 500;
+  }
+
+  .close-btn:hover {
+    background: #c82333;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  }
+
+  .pdf-viewer-content {
+    padding: 0;
+    background: #f8f9fa;
+  }
+
+  .pdf-viewer-content iframe {
+    width: 100%;
+    height: 600px;
+    border: 0;
+    display: block;
+  }
+
+  /* Certification item styles - Enhanced to match Angular component */
+  .certifications-container {
+    margin-top: 1rem;
+  }
+
+  .certification-item {
+    background: #ffffff;
+    border: 1px solid #e0e0e0;
+    border-radius: 0.5rem;
+    padding: 1rem;
+    margin-bottom: 0.8rem;
+    transition: all 0.3s ease;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  }
+
+  .certification-item:hover {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    transform: translateY(-1px);
+  }
+
+  .certification-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .certification-name {
+    font-weight: 600;
+    color: #2c3e50;
+    flex: 1;
+    min-width: 200px;
+    font-size: 0.95rem;
+  }
+
+  .certification-actions {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+  }
+
+  .btn {
+    padding: 0.4rem 0.8rem;
+    border: none;
+    border-radius: 0.3rem;
+    cursor: pointer;
+    font-size: 0.85rem;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    text-decoration: none;
+    display: inline-block;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .btn-sm {
+    padding: 0.3rem 0.6rem;
+    font-size: 0.8rem;
+  }
+
+  .btn-secondary {
+    background: #6c757d;
+    color: white;
+  }
+
+  .btn-secondary:hover {
+    background: #5a6268;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  }
+
+  .btn-primary {
+    background: #007bff;
+    color: white;
+  }
+
+  .btn-primary:hover {
+    background: #0056b3;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  }
+
+  /* Success and error messages */
+  .message {
+    padding: 1rem;
+    border-radius: 0.5rem;
+    margin: 1rem 0;
+    display: none;
+  }
+
+  .message.success {
+    background: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+  }
+
+  .message.error {
+    background: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+  }
+
+  .message.show {
+    display: block;
+  }
+
   @media (max-width: 768px) {
     .container {
       padding: 1.2rem;
@@ -179,6 +344,20 @@
     .metadata p {
       font-size: 0.9rem;
     }
+
+    .certification-info {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+
+    .certification-actions {
+      width: 100%;
+      justify-content: flex-start;
+    }
+
+    .pdf-viewer-content iframe {
+      height: 400px;
+    }
   }
 
   @media (max-width: 600px) {
@@ -195,6 +374,10 @@
     .array-item {
       font-size: 0.8rem;
     }
+
+    .pdf-viewer-content iframe {
+      height: 350px;
+    }
   }
 </style>
 
@@ -207,6 +390,10 @@
       <button id="refresh-btn" class="refresh-btn">🔄 Refresh</button>
     </div>
 
+    <!-- Success/Error Messages -->
+    <div id="success-message" class="message success"></div>
+    <div id="error-message" class="message error"></div>
+
     <div id="status" class="loading">
       <h3>Loading Profile...</h3>
       <p>Fetching the latest available profile from blockchain...</p>
@@ -214,7 +401,7 @@
 
     <div id="error" class="error" style="display: none;">
       <h3>❌ Error Loading Profile</h3>
-      <p id="error-message"></p>
+      <p id="error-message-text"></p>
     </div>
 
     <div id="profile-content" style="display: none;">
@@ -234,20 +421,55 @@
         <h3>🏢 Company Profile</h3>
         <div id="profile-fields"></div>
       </section>
+
+      <!-- PDF Viewer Section - Enhanced to match Angular component -->
+      <div id="pdf-viewer-section" class="pdf-viewer-section">
+        <div class="pdf-viewer-card">
+          <div class="pdf-viewer-header">
+            <h3>📄 Document Viewer</h3>
+            <button class="close-btn" onclick="clearPdfViewer()">❌ Close</button>
+          </div>
+          <div class="pdf-viewer-content">
+            <iframe id="pdf-iframe" style="width:100%;height:600px;border:0"></iframe>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 
   <script>
     const API = 'http://localhost:3000/blockchain/latest-available';
+    const API_BASE_URL = 'http://localhost:3000';
 
     const refreshBtn = document.getElementById("refresh-btn");
     const statusDiv = document.getElementById("status");
     const errorDiv = document.getElementById("error");
-    const errorMessage = document.getElementById("error-message");
+    const errorMessageText = document.getElementById("error-message-text");
     const profileContent = document.getElementById("profile-content");
     const verificationDiv = document.getElementById("verification");
+    const pdfViewerSection = document.getElementById("pdf-viewer-section");
+    const pdfIframe = document.getElementById("pdf-iframe");
+    const successMessage = document.getElementById("success-message");
+    const errorMessage = document.getElementById("error-message");
 
     refreshBtn.addEventListener("click", loadProfile);
+
+    // Enhanced message display functions
+    function showSuccess(message) {
+      successMessage.textContent = message;
+      successMessage.classList.add('show');
+      setTimeout(() => {
+        successMessage.classList.remove('show');
+      }, 5000);
+    }
+
+    function showError(message) {
+      errorMessage.textContent = message;
+      errorMessage.classList.add('show');
+      setTimeout(() => {
+        errorMessage.classList.remove('show');
+      }, 5000);
+    }
 
     async function loadProfile() {
       showLoading();
@@ -277,7 +499,7 @@
       statusDiv.style.display = "none";
       profileContent.style.display = "none";
       errorDiv.style.display = "block";
-      errorMessage.textContent = msg;
+      errorMessageText.textContent = msg;
     }
 
     function showContent() {
@@ -338,15 +560,172 @@
 
       arrays.forEach(f => {
         if (Array.isArray(data[f.key])) {
-          container.innerHTML += `
-            <div class="field">
-              <div class="field-label">${f.label}</div>
-              <div class="field-value">
-                ${data[f.key].map(item => `<span class="array-item">${item}</span>`).join('')}
-              </div>
-            </div>`;
+          if (f.key === "certifications") {
+            // Special handling for certifications with PDF viewing
+            container.innerHTML += `
+              <div class="field">
+                <div class="field-label">${f.label}</div>
+                <div class="field-value">
+                  <div class="certifications-container">
+                    ${data[f.key].length > 0 ? data[f.key].map(cert => renderCertificationItem(cert)).join('') : '<p class="no-data">No certifications specified</p>'}
+                  </div>
+                </div>
+              </div>`;
+          } else {
+            container.innerHTML += `
+              <div class="field">
+                <div class="field-label">${f.label}</div>
+                <div class="field-value">
+                  ${data[f.key].length > 0 ? data[f.key].map(item => `<span class="array-item">${item}</span>`).join('') : '<p class="no-data">No items specified</p>'}
+                </div>
+              </div>`;
+          }
         }
       });
+    }
+
+    function renderCertificationItem(cert) {
+      const fileName = cert.split('/').pop() || cert;
+      const documentId = extractDocumentId(cert);
+      
+      return `
+        <div class="certification-item">
+          <div class="certification-info">
+            <span class="certification-name">${fileName}</span>
+            <div class="certification-actions">
+              <button class="btn btn-secondary btn-sm" onclick="loadPdfForViewing('${cert}')" 
+                      ${supportsInlineViewing('application/pdf') ? '' : 'style="display:none;"'}>
+                👁️ View
+              </button>
+              <button class="btn btn-primary btn-sm" onclick="downloadFile('${cert}', '${fileName}')">
+                📥 Download
+              </button>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    // Enhanced helper function to extract document ID from URL
+    function extractDocumentId(documentIdOrUrl) {
+      console.log('🔍 extractDocumentId called with:', documentIdOrUrl);
+      
+      // If it's already a UUID, return it
+      const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      if (uuidPattern.test(documentIdOrUrl)) {
+        console.log('✅ Already a UUID:', documentIdOrUrl);
+        return documentIdOrUrl;
+      }
+      
+      // If it's a URL, try to extract UUID from it
+      if (documentIdOrUrl.includes('/')) {
+        // Look for UUID pattern in the URL
+        const urlUuidPattern = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i;
+        const match = documentIdOrUrl.match(urlUuidPattern);
+        if (match) {
+          console.log('✅ UUID extracted from URL:', match[0]);
+          return match[0];
+        }
+        
+        // Try to extract from the path segments
+        const pathSegments = documentIdOrUrl.split('/');
+        for (const segment of pathSegments) {
+          if (segment.length === 36 && uuidPattern.test(segment)) {
+            console.log('✅ UUID found in path segment:', segment);
+            return segment;
+          }
+        }
+        
+        // If still no UUID found, use the last segment
+        const lastSegment = pathSegments[pathSegments.length - 1] || documentIdOrUrl;
+        console.log('⚠️ Using last path segment as documentId:', lastSegment);
+        return lastSegment;
+      }
+      
+      // If it's not a URL and not a UUID, return as is
+      console.log('⚠️ No UUID found, returning as is:', documentIdOrUrl);
+      return documentIdOrUrl;
+    }
+
+    // Enhanced function to check if file type supports inline viewing
+    function supportsInlineViewing(mimeType) {
+      return mimeType.startsWith('application/pdf') || 
+             mimeType.startsWith('image/');
+    }
+
+    // Enhanced load PDF for inline viewing - matches Angular component exactly
+    async function loadPdfForViewing(documentIdOrUrl) {
+      try {
+        console.log('🔍 loadPdfForViewing called with:', documentIdOrUrl);
+        
+        const documentId = extractDocumentId(documentIdOrUrl);
+        console.log('🎯 Final documentId:', documentId);
+        
+        const url = `${API_BASE_URL}/documents/${documentId}/file`;
+        console.log('🌐 Requesting URL:', url);
+
+        const response = await fetch(url);
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+
+        const blob = await response.blob();
+        const objectUrl = URL.createObjectURL(blob);
+        
+        pdfIframe.src = objectUrl;
+        pdfViewerSection.style.display = 'block';
+        
+        console.log('✅ PDF loaded for inline viewing:', documentId);
+        showSuccess('PDF loaded for inline viewing');
+      } catch (error) {
+        console.error('❌ Error loading PDF for viewing:', error);
+        showError('Failed to load PDF for viewing: ' + error.message);
+      }
+    }
+
+    // Enhanced download file function - matches Angular component exactly
+    async function downloadFile(documentIdOrUrl, fileName) {
+      try {
+        console.log('🔍 downloadFile called with:', documentIdOrUrl);
+        
+        const documentId = extractDocumentId(documentIdOrUrl);
+        console.log('🎯 Final documentId:', documentId);
+        
+        const url = `${API_BASE_URL}/documents/${documentId}/download`;
+        console.log('🌐 Requesting URL:', url);
+
+        const response = await fetch(url);
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+
+        const blob = await response.blob();
+        const objectUrl = URL.createObjectURL(blob);
+        
+        const a = document.createElement('a');
+        a.href = objectUrl;
+        a.download = fileName;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(objectUrl);
+        
+        console.log('✅ File downloaded successfully:', fileName);
+        showSuccess('File downloaded successfully!');
+      } catch (error) {
+        console.error('❌ Error downloading file:', error);
+        showError('Failed to download file: ' + error.message);
+      }
+    }
+
+    // Enhanced clear PDF viewer function - matches Angular component exactly
+    function clearPdfViewer() {
+      if (pdfIframe.src) {
+        URL.revokeObjectURL(pdfIframe.src);
+        pdfIframe.src = '';
+      }
+      pdfViewerSection.style.display = 'none';
+      console.log('✅ PDF viewer cleared');
     }
 
     loadProfile();

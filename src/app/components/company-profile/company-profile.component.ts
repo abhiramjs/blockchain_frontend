@@ -3,7 +3,10 @@ import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, FormArray, Validators, ReactiveFormsModule } from '@angular/forms';
 import { HttpClient, HttpErrorResponse, HttpHeaders } from '@angular/common/http';
 import { Router } from '@angular/router';
+import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import * as QRCode from 'qrcode';
+import { lastValueFrom } from 'rxjs';
+import { filter, map } from 'rxjs/operators';
 
 interface CompanyProfile {
   company_name: string;
@@ -18,7 +21,7 @@ interface CompanyProfile {
   customer_segments: string[];
   competitive_position: string;
   partnerships: string[];
-  certifications: string[];
+  certifications: string[]; // Changed back to string[] for URLs
   sales_channels: string[];
 }
 
@@ -162,6 +165,16 @@ export class CompanyProfileComponent implements OnInit {
   regulatorProfileError: string = '';
   regulatorProfileData: RegulatorProfileData | null = null;
 
+  // Add properties for file handling
+  certificationFiles: File[] = [];
+  uploadedCertificationUrls: string[] = [];
+  updateCertificationFiles: File[] = []; // For update form
+  readableError: string = '';
+
+  // PDF rendering properties
+  pdfUrl: SafeResourceUrl | null = null;
+  currentPdfId: string | null = null;
+
   // API base URL
   private readonly API_BASE_URL = 'http://localhost:3000';
 
@@ -169,7 +182,8 @@ export class CompanyProfileComponent implements OnInit {
     private fb: FormBuilder,
     private http: HttpClient,
     private cdr: ChangeDetectorRef,
-    private router: Router
+    private router: Router,
+    private sanitizer: DomSanitizer
   ) {
   }
 
@@ -182,14 +196,28 @@ export class CompanyProfileComponent implements OnInit {
     this.privateKeyValidated = false;
   }
 
-  private async testBackendConnection() {
-    try {
-      console.log('🔍 Testing backend connection...');
-      const response = await this.http.get(`${this.API_BASE_URL}/health`).toPromise();
-      console.log('✅ Backend connection successful:', response);
-    } catch (error) {
-      console.error('❌ Backend connection failed:', error);
-    }
+  // Helper method to convert observable to promise
+  private async observableToPromise<T>(observable: any): Promise<T> {
+    return new Promise((resolve, reject) => {
+      observable.subscribe({
+        next: (value: T) => resolve(value),
+        error: (error: any) => reject(error)
+      });
+    });
+  }
+
+  private testBackendConnection() {
+    console.log('🔍 Testing backend connection...');
+    this.http
+      .get(`${this.API_BASE_URL}/health`, { responseType: 'text' as 'json' })
+      .subscribe({
+        next: (response) => {
+          console.log('✅ Backend connection successful:', response);
+        },
+        error: (error) => {
+          console.error('❌ Backend connection failed:', error);
+        },
+      });
   }
 
   private initializeForms() {
@@ -207,7 +235,7 @@ export class CompanyProfileComponent implements OnInit {
       customer_segments: this.fb.array([]),
       competitive_position: ['', Validators.required],
       partnerships: this.fb.array([]),
-      certifications: this.fb.array([]),
+      certifications: this.fb.array([]), // This will store file references
       sales_channels: this.fb.array([]),
       private_key: ['', Validators.required]
     });
@@ -226,8 +254,9 @@ export class CompanyProfileComponent implements OnInit {
       customer_segments: this.fb.array([]),
       competitive_position: ['', Validators.required],
       partnerships: this.fb.array([]),
-      certifications: this.fb.array([]),
-      sales_channels: this.fb.array([])
+      certifications: this.fb.array([]), // This will store file references
+      sales_channels: this.fb.array([]),
+      private_key: ['', Validators.required]
     });
 
     // Private Key Form
@@ -311,6 +340,226 @@ export class CompanyProfileComponent implements OnInit {
 
   removeArrayItem(array: FormArray, index: number) {
     array.removeAt(index);
+  }
+
+  // Override the addArrayItem method for certifications to handle file inputs
+  addCertificationItem() {
+    const certificationsArray = this.createForm.get('certifications') as FormArray;
+    certificationsArray.push(this.fb.control(''));
+    this.certificationFiles.push(null as any);
+  }
+
+  // Override the removeArrayItem method for certifications
+  removeCertificationItem(index: number) {
+    const certificationsArray = this.createForm.get('certifications') as FormArray;
+    certificationsArray.removeAt(index);
+    this.certificationFiles.splice(index, 1);
+  }
+
+  // Override the addArrayItem method for update certifications
+  addUpdateCertificationItem() {
+    const certificationsArray = this.updateForm.get('certifications') as FormArray;
+    certificationsArray.push(this.fb.control(''));
+    this.updateCertificationFiles.push(null as any);
+  }
+
+  // Override the removeArrayItem method for update certifications
+  removeUpdateCertificationItem(index: number) {
+    const certificationsArray = this.updateForm.get('certifications') as FormArray;
+    certificationsArray.removeAt(index);
+    this.updateCertificationFiles.splice(index, 1);
+  }
+
+  // File upload method for certifications in create form
+  onFileSelect(event: any, index: number) {
+    const file = event.target.files[0];
+    if (file) {
+      // Validate file type
+      const allowedTypes = [
+        'application/pdf',
+        'text/csv',
+        'image/jpeg',
+        'image/png',
+        'image/jpg',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      ];
+      if (!allowedTypes.includes(file.type)) {
+        this.showError('Invalid file type. Please upload PDF, CSV, PNG, JPG, JPEG, or DOCX files only.');
+        return;
+      }
+
+      // Validate file size (max 25MB to match backend)
+      const maxSize = 25 * 1024 * 1024; // 25MB
+      if (file.size > maxSize) {
+        this.showError('File size too large. Please upload files smaller than 25MB.');
+        return;
+      }
+
+      // Store the file in the certificationFiles array
+      this.certificationFiles[index] = file;
+      
+      // Update the form control with file name for display
+      const certificationsArray = this.createForm.get('certifications') as FormArray;
+      if (certificationsArray.at(index)) {
+        certificationsArray.at(index).setValue(file.name);
+      }
+
+      this.showSuccess(`File "${file.name}" selected successfully.`);
+    }
+  }
+
+  // Method to upload certification files to backend
+  async uploadCertificationFiles(): Promise<string[]> {
+    const uploadedUrls: string[] = [];
+    
+    for (let i = 0; i < this.certificationFiles.length; i++) {
+      const file = this.certificationFiles[i];
+      if (file) {
+        try {
+          const form = new FormData();
+          form.append('file', file);
+
+          // Use the new documents/upload endpoint with proper error handling
+          const response = await lastValueFrom(
+            this.http.post<any>(
+              `${this.API_BASE_URL}/documents/upload`,
+              form,
+              {
+                observe: 'events',
+                reportProgress: true
+              }
+            ).pipe(
+              filter((event: any) => event.type === 4), // Only complete events
+              map((event: any) => event.body)
+            )
+          );
+
+          if (response && response.id) {
+            // Construct the download URL for the uploaded file
+            const downloadUrl = `${this.API_BASE_URL}/documents/${response.id}/download`;
+            uploadedUrls.push(downloadUrl);
+            console.log(`✅ Certification file uploaded: ${response.original_name} (ID: ${response.id})`);
+          } else {
+            throw new Error('Invalid response from server');
+          }
+        } catch (error: any) {
+          console.error(`❌ Error uploading certification file: ${file.name}`, error);
+          
+          // Extract error message from response
+          let errorMessage = 'Upload failed';
+          if (error?.error?.error) {
+            errorMessage = error.error.error;
+          } else if (error?.error?.message) {
+            errorMessage = error.error.message;
+          } else if (error?.message) {
+            errorMessage = error.message;
+          } else if (typeof error === 'string') {
+            errorMessage = error;
+          }
+          
+          this.readableError = errorMessage;
+          throw new Error(`Failed to upload ${file.name}: ${errorMessage}`);
+        }
+      }
+    }
+
+    return uploadedUrls;
+  }
+
+  // File upload method for certifications in update form
+  onUpdateFileSelect(event: any, index: number) {
+    const file = event.target.files[0];
+    if (file) {
+      // Validate file type
+      const allowedTypes = [
+        'application/pdf',
+        'text/csv',
+        'image/jpeg',
+        'image/png',
+        'image/jpg',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      ];
+      if (!allowedTypes.includes(file.type)) {
+        this.showError('Invalid file type. Please upload PDF, CSV, PNG, JPG, JPEG, or DOCX files only.');
+        return;
+      }
+
+      // Validate file size (max 25MB to match backend)
+      const maxSize = 25 * 1024 * 1024; // 25MB
+      if (file.size > maxSize) {
+        this.showError('File size too large. Please upload files smaller than 25MB.');
+        return;
+      }
+
+      // Store the file in the updateCertificationFiles array
+      this.updateCertificationFiles[index] = file;
+      
+      // Update the form control with file name for display
+      const certificationsArray = this.updateForm.get('certifications') as FormArray;
+      if (certificationsArray.at(index)) {
+        certificationsArray.at(index).setValue(file.name);
+      }
+
+      this.showSuccess(`File "${file.name}" selected successfully.`);
+    }
+  }
+
+  // Method to upload certification files for update form
+  async uploadUpdateCertificationFiles(): Promise<string[]> {
+    const uploadedUrls: string[] = [];
+    
+    for (let i = 0; i < this.updateCertificationFiles.length; i++) {
+      const file = this.updateCertificationFiles[i];
+      if (file) {
+        try {
+          const form = new FormData();
+          form.append('file', file);
+
+          // Use the new documents/upload endpoint with proper error handling
+          const response = await lastValueFrom(
+            this.http.post<any>(
+              `${this.API_BASE_URL}/documents/upload`,
+              form,
+              {
+                observe: 'events',
+                reportProgress: true
+              }
+            ).pipe(
+              filter((event: any) => event.type === 4), // Only complete events
+              map((event: any) => event.body)
+            )
+          );
+
+          if (response && response.id) {
+            // Construct the download URL for the uploaded file
+            const downloadUrl = `${this.API_BASE_URL}/documents/${response.id}/download`;
+            uploadedUrls.push(downloadUrl);
+            console.log(`✅ Update certification file uploaded: ${response.original_name} (ID: ${response.id})`);
+          } else {
+            throw new Error('Invalid response from server');
+          }
+        } catch (error: any) {
+          console.error(`❌ Error uploading update certification file: ${file.name}`, error);
+          
+          // Extract error message from response
+          let errorMessage = 'Upload failed';
+          if (error?.error?.error) {
+            errorMessage = error.error.error;
+          } else if (error?.error?.message) {
+            errorMessage = error.error.message;
+          } else if (error?.message) {
+            errorMessage = error.message;
+          } else if (typeof error === 'string') {
+            errorMessage = error;
+          }
+          
+          this.readableError = errorMessage;
+          throw new Error(`Failed to upload ${file.name}: ${errorMessage}`);
+        }
+      }
+    }
+
+    return uploadedUrls;
   }
 
   // Tab management
@@ -588,56 +837,88 @@ export class CompanyProfileComponent implements OnInit {
 
   async createProfile() {
     if (this.createForm.invalid) {
-      this.showError('Please fill in all required fields');
+      this.showError('Please fill in all required fields.');
       return;
     }
 
+    this.isLoading = true;
+    this.clearMessages();
+
     try {
-      this.isLoading = true;
-      this.clearMessages();
-      
-      const formData = this.createForm.value;
-      
-      // 🔍 LOGGING: Show the private key being used for creation
-      console.log('🚀 CREATE PROFILE - Using private key:', formData.private_key);
-      console.log('🚀 CREATE PROFILE - Private key length:', formData.private_key.length);
-      console.log('🚀 CREATE PROFILE - Private key (first 10 chars):', formData.private_key.substring(0, 10) + '...');
-      
-      console.log('🚀 Creating profile with data:', this.createForm.value);
-      
-      const profileData = {
-        profile_data: this.createForm.value,
-        timestamp: new Date().toISOString()
+      // First, upload certification files if any
+      let certificationUrls: string[] = [];
+      if (this.certificationFiles.some(file => file !== null)) {
+        try {
+          certificationUrls = await this.uploadCertificationFiles();
+        } catch (error) {
+          this.showError(`Failed to upload certification files: ${error}`);
+          this.isLoading = false;
+          return;
+        }
+      }
+
+      // Prepare profile data
+      const profileData: CompanyProfile = {
+        company_name: this.createForm.get('company_name')?.value,
+        location: this.createForm.get('location')?.value,
+        contact: this.createForm.get('contact')?.value,
+        size: this.createForm.get('size')?.value,
+        established: this.createForm.get('established')?.value,
+        revenue: this.createForm.get('revenue')?.value,
+        market_segments: this.marketSegmentsArray.value,
+        technology_focus: this.technologyFocusArray.value,
+        key_markets: this.keyMarketsArray.value,
+        customer_segments: this.customerSegmentsArray.value,
+        competitive_position: this.createForm.get('competitive_position')?.value,
+        partnerships: this.partnershipsArray.value,
+        certifications: certificationUrls, // Use uploaded URLs
+        sales_channels: this.salesChannelsArray.value
       };
 
+      // Add private key to profile data
+      const profileDataWithPrivateKey = {
+        ...profileData,
+        private_key: this.createForm.get('private_key')?.value
+      };
+
+      // 🔍 LOGGING: Show the private key being used for creation
+      console.log('🚀 CREATE PROFILE - Using private key:', this.createForm.get('private_key')?.value);
+      console.log('🚀 CREATE PROFILE - Private key length:', this.createForm.get('private_key')?.value.length);
+      console.log('🚀 CREATE PROFILE - Private key (first 10 chars):', this.createForm.get('private_key')?.value.substring(0, 10) + '...');
+      
+      console.log('🚀 Creating profile with data:', profileDataWithPrivateKey);
+      
       const response = await this.http.post<ProfileResponse>(
         `${this.API_BASE_URL}/blockchain/store`,
-        profileData
+        {
+          profile_data: profileDataWithPrivateKey,
+          timestamp: new Date().toISOString()
+        }
       ).toPromise();
 
-      console.log('✅ Backend response:', response);
-
       if (response) {
-        this.createdProfileData = response;
+        console.log('✅ Profile created successfully:', response);
         
-        // 🔍 LOGGING: Show what private key the backend returned
-        console.log('🔐 BACKEND RETURNED PRIVATE KEY:', response.private_key);
-        console.log('🔐 BACKEND RETURNED PRIVATE KEY LENGTH:', response.private_key.length);
-        console.log('🔐 BACKEND RETURNED PRIVATE KEY (first 10 chars):', response.private_key.substring(0, 10) + '...');
-        console.log('🔐 FILE ID:', response.file_id);
-        console.log('🔐 PUBLIC KEY:', response.public_key);
+        this.createdProfileData = response;
+        this.fileId = response.file_id;
+        this.publicKey = response.public_key;
+        this.privateKey = response.private_key;
+        
+        // Generate QR code
+        await this.generateQRCode();
         
         this.showCreateSuccess = true;
-        this.showSuccess('Profile created successfully! Please securely save your private key.');
+        this.showSuccess('Profile created successfully!');
         
-        // Reset form after successful creation
+        // Reset form
         this.createForm.reset();
         this.clearFormArrays(this.createForm);
+        this.certificationFiles = []; // Clear uploaded files
+        this.uploadedCertificationUrls = []; // Clear uploaded URLs
       } else {
         throw new Error('No response received from server');
       }
     } catch (error) {
-      console.error('❌ Error creating profile:', error);
       this.handleApiError(error, 'Failed to create profile');
     } finally {
       this.isLoading = false;
@@ -730,109 +1011,85 @@ export class CompanyProfileComponent implements OnInit {
 
   async updateProfile() {
     if (this.updateForm.invalid) {
-      this.showError('Please fill in all required fields');
+      this.showError('Please fill in all required fields.');
       return;
     }
 
-    if (!this.fileId) {
-      this.showError('No file ID available. Please validate your private key first.');
-      return;
-    }
-
-    const privateKey = this.privateKeyForm.get('private_key')?.value;
-    if (!privateKey) {
-      this.showError('Private key is required for updating profile.');
-      return;
-    }
-    
-    // 🔍 LOGGING: Show the private key being used for update
-    console.log('🔄 UPDATE PROFILE - Using private key:', privateKey);
-    console.log('🔄 UPDATE PROFILE - Private key length:', privateKey.length);
-    console.log('🔄 UPDATE PROFILE - File ID:', this.fileId);
+    this.updateProfileLoading = true;
+    this.clearMessages();
 
     try {
-      this.updateProfileLoading = true;
-      this.updateProfileError = '';
-      this.updateProfileSuccess = '';
-      
-      console.log('🔄 Updating profile with file ID:', this.fileId);
-      
-      const updateData = {
-        profile_data: this.updateForm.value,
-        timestamp: new Date().toISOString()
+      // First, upload certification files if any
+      let certificationUrls: string[] = [];
+      if (this.updateCertificationFiles.some(file => file !== null)) {
+        try {
+          certificationUrls = await this.uploadUpdateCertificationFiles();
+        } catch (error) {
+          this.showError(`Failed to upload certification files: ${error}`);
+          this.updateProfileLoading = false;
+          return;
+        }
+      }
+
+      // Prepare profile data
+      const profileData: CompanyProfile = {
+        company_name: this.updateForm.get('company_name')?.value,
+        location: this.updateForm.get('location')?.value,
+        contact: this.updateForm.get('contact')?.value,
+        size: this.updateForm.get('size')?.value,
+        established: this.updateForm.get('established')?.value,
+        revenue: this.updateForm.get('revenue')?.value,
+        market_segments: this.updateMarketSegmentsArray.value,
+        technology_focus: this.updateTechnologyFocusArray.value,
+        key_markets: this.updateKeyMarketsArray.value,
+        customer_segments: this.updateCustomerSegmentsArray.value,
+        competitive_position: this.updateForm.get('competitive_position')?.value,
+        partnerships: this.updatePartnershipsArray.value,
+        certifications: certificationUrls, // Use uploaded URLs
+        sales_channels: this.updateSalesChannelsArray.value
       };
 
-      // Create headers with private key
+      // 🔍 LOGGING: Show the private key being used for update
+      console.log('🔄 UPDATE PROFILE - Using private key:', this.privateKeyForm.get('private_key')?.value);
+      console.log('🔄 UPDATE PROFILE - Private key length:', this.privateKeyForm.get('private_key')?.value.length);
+      console.log('🔄 UPDATE PROFILE - File ID:', this.fileId);
+
+      console.log('🔄 Updating profile with file ID:', this.fileId);
+      
       const headers = new HttpHeaders({
         'Content-Type': 'application/json',
-        'private_key': privateKey
+        'private_key': this.privateKeyForm.get('private_key')?.value
       });
 
-      const response = await this.http.put<ProfileUpdateResponse>(
-        `${this.API_BASE_URL}/blockchain/profiles/${this.fileId}`,
-        updateData,
+      const response = await this.http.post<ProfileUpdateResponse>(
+        `${this.API_BASE_URL}/blockchain/update/${this.fileId}`,
+        {
+          profile_data: profileData,
+          private_key: this.privateKeyForm.get('private_key')?.value
+        },
         { headers }
       ).toPromise();
 
-      if (response && response.success) {
+      if (response) {
         console.log('✅ Profile updated successfully:', response);
+        
         this.profileUpdateResponse = response;
+        this.updateProfileSuccess = 'Profile updated successfully!';
+        this.showSuccess('Profile updated successfully!');
         
-        this.updateProfileSuccess = `Profile updated successfully! New version: ${response.new_version}, New File ID: ${response.new_file_id}`;
+        // Refresh the latest profile data
+        await this.loadSingleLatestProfile();
         
-        // Update the latest profile data with the new file ID and reload QR code
-        if (response.new_file_id) {
-          console.log('🔄 Updating QR code with new file ID:', response.new_file_id);
-          
-          // Update the latest profile data to reflect the new file ID
-          if (this.latestProfileData) {
-            this.latestProfileData.metadata.file_id = response.new_file_id;
-            this.latestProfileData.metadata.version = response.new_version;
-            this.latestProfileData.metadata.updated_at = response.timestamp;
-            this.latestProfileData.metadata.profile_hash = response.profile_hash;
-          }
-          
-          // Regenerate QR code with the new file ID
-          await this.generateQRCode();
-          
-          // Refresh latest profile data from backend to ensure we have the most up-to-date information
-          await this.refreshLatestProfileData();
-          
-          console.log('✅ QR code updated with new file ID');
-        }
-        
-        this.updateForm.reset();
-        this.privateKeyForm.reset();
+        // Clear update form arrays
         this.clearFormArrays(this.updateForm);
-        this.currentProfile = null;
-        this.fileId = '';
-        this.publicKey = '';
-        this.profileUpdateResponse = null;
-        this.privateKeyValidated = false;
-        
-        this.showSuccess('Profile updated successfully! New version created and stored on blockchain.');
+        this.updateCertificationFiles = []; // Clear uploaded files
       } else {
-        throw new Error('Update request failed');
+        throw new Error('No response received from server');
       }
-    } catch (error: any) {
-      console.error('❌ Profile update error:', error);
-      
-      if (error.status === 404) {
-        this.updateProfileError = 'Profile not found. The file ID may be invalid or the profile may have been deleted.';
-      } else if (error.status === 401) {
-        this.updateProfileError = 'Unauthorized. The private key may be incorrect or insufficient permissions.';
-      } else if (error.status === 400) {
-        this.updateProfileError = 'Invalid request data. Please check your form inputs.';
-      } else if (error.status === 0) {
-        this.updateProfileError = 'Cannot connect to backend server. Please check if the server is running.';
-      } else {
-        this.updateProfileError = 'Failed to update profile. Please try again.';
-      }
-      
+    } catch (error) {
       this.handleApiError(error, 'Failed to update profile');
     } finally {
       this.updateProfileLoading = false;
-      this.cdr.detectChanges();
     }
   }
 
@@ -919,22 +1176,29 @@ export class CompanyProfileComponent implements OnInit {
       } else if (error.status === 401) {
         this.showError('Invalid private key');
       } else if (error.status === 400) {
-        this.showError(`Invalid data provided: ${error.error?.error || error.message}`);
+        const errorMsg = error.error?.error || error.error?.message || error.message;
+        this.showError(`Invalid data provided: ${errorMsg}`);
       } else if (error.status === 0) {
         this.showError('Network error: Cannot connect to backend server. Please check if the server is running.');
       } else {
-        this.showError(`Server error (${error.status}): ${error.error?.error || error.message}`);
+        const errorMsg = error.error?.error || error.error?.message || error.message;
+        this.showError(`Server error (${error.status}): ${errorMsg}`);
       }
     } else {
       console.error('❌ Non-HTTP Error:', error);
-      this.showError(`${defaultMessage}: ${error.message || error}`);
+      const errorMsg = error.message || error.toString();
+      this.showError(`${defaultMessage}: ${errorMsg}`);
     }
   }
 
   private showError(message: string) {
     this.errorMessage = message;
+    this.readableError = message; // Set the readable error for UI display
     this.successMessage = '';
-    setTimeout(() => this.errorMessage = '', 5000);
+    setTimeout(() => {
+      this.errorMessage = '';
+      this.readableError = '';
+    }, 5000);
   }
 
   private showSuccess(message: string) {
@@ -1164,6 +1428,152 @@ You can scan this QR code to verify the profile on any device.
   openVerificationPage() {
     if (this.qrCodeUrl) {
       window.open(this.qrCodeUrl, '_blank');
+    }
+  }
+
+  // Helper method to extract document ID from various URL formats
+  private extractDocumentId(documentIdOrUrl: string): string {
+    console.log('🔍 extractDocumentId called with:', documentIdOrUrl);
+    
+    // If it's already a UUID, return it
+    const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (uuidPattern.test(documentIdOrUrl)) {
+      console.log('✅ Already a UUID:', documentIdOrUrl);
+      return documentIdOrUrl;
+    }
+    
+    // If it's a URL, try to extract UUID from it
+    if (documentIdOrUrl.includes('/')) {
+      // Look for UUID pattern in the URL
+      const urlUuidPattern = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i;
+      const match = documentIdOrUrl.match(urlUuidPattern);
+      if (match) {
+        console.log('✅ UUID extracted from URL:', match[0]);
+        return match[0];
+      }
+      
+      // Try to extract from the path segments
+      const pathSegments = documentIdOrUrl.split('/');
+      for (const segment of pathSegments) {
+        if (segment.length === 36 && uuidPattern.test(segment)) {
+          console.log('✅ UUID found in path segment:', segment);
+          return segment;
+        }
+      }
+      
+      // If still no UUID found, use the last segment
+      const lastSegment = pathSegments[pathSegments.length - 1] || documentIdOrUrl;
+      console.log('⚠️ Using last path segment as documentId:', lastSegment);
+      return lastSegment;
+    }
+    
+    // If it's not a URL and not a UUID, return as is
+    console.log('⚠️ No UUID found, returning as is:', documentIdOrUrl);
+    return documentIdOrUrl;
+  }
+
+  async loadPdfForViewing(documentIdOrUrl: string) {
+    try {
+      console.log('🔍 loadPdfForViewing called with:', documentIdOrUrl);
+      
+      const documentId = this.extractDocumentId(documentIdOrUrl);
+      console.log('🎯 Final documentId:', documentId);
+      
+      const url = `${this.API_BASE_URL}/documents/${documentId}/file`;
+      console.log('🌐 Requesting URL:', url);
+
+      const response = await this.http.get(url, { responseType: 'blob' }).toPromise();
+
+      if (response) {
+        // The response is already a Blob, don't create a new one
+        const objectUrl = URL.createObjectURL(response);
+        this.pdfUrl = this.sanitizer.bypassSecurityTrustResourceUrl(objectUrl);
+        this.currentPdfId = documentId;
+        console.log('✅ PDF loaded for inline viewing:', documentId);
+      }
+    } catch (error) {
+      console.error('❌ Error loading PDF for viewing:', error);
+      this.showError('Failed to load PDF for viewing');
+    }
+  }
+
+  // Load image for inline viewing
+  async loadImageForViewing(documentId: string, mimeType: string) {
+    try {
+      const response = await this.http.get(
+        `${this.API_BASE_URL}/documents/${documentId}/file`,
+        { responseType: 'blob' }
+      ).toPromise();
+
+      if (response) {
+        // The response is already a Blob, don't create a new one
+        const objectUrl = URL.createObjectURL(response);
+        this.pdfUrl = this.sanitizer.bypassSecurityTrustResourceUrl(objectUrl);
+        this.currentPdfId = documentId;
+        console.log('✅ Image loaded for inline viewing:', documentId);
+      }
+    } catch (error) {
+      console.error('❌ Error loading image for viewing:', error);
+      this.showError('Failed to load image for viewing');
+    }
+  }
+
+  // Check if file type supports inline viewing
+  supportsInlineViewing(mimeType: string): boolean {
+    return mimeType.startsWith('application/pdf') || 
+           mimeType.startsWith('image/');
+  }
+
+  // Get file type for display
+  getFileTypeForDisplay(mimeType: string): string {
+    if (mimeType.startsWith('application/pdf')) return 'PDF';
+    if (mimeType.startsWith('image/')) return 'Image';
+    if (mimeType === 'text/csv') return 'CSV';
+    if (mimeType.includes('wordprocessingml')) return 'DOCX';
+    return 'File';
+  }
+
+  // Clear PDF viewer
+  clearPdfViewer() {
+    if (this.pdfUrl) {
+      // Revoke the object URL to free memory
+      const url = this.pdfUrl.toString();
+      if (url.startsWith('blob:')) {
+        URL.revokeObjectURL(url.replace('blob:', ''));
+      }
+      this.pdfUrl = null;
+      this.currentPdfId = null;
+    }
+  }
+
+  // Download file
+  async downloadFile(documentIdOrUrl: string, fileName: string) {
+    try {
+      console.log('🔍 downloadFile called with:', documentIdOrUrl);
+      
+      const documentId = this.extractDocumentId(documentIdOrUrl);
+      console.log('🎯 Final documentId:', documentId);
+      
+      const url = `${this.API_BASE_URL}/documents/${documentId}/download`;
+      console.log('🌐 Requesting URL:', url);
+
+      const response = await this.http.get(url, { responseType: 'blob' }).toPromise();
+
+      if (response) {
+        // The response is already a Blob, don't create a new one
+        const objectUrl = window.URL.createObjectURL(response);
+        const a = document.createElement('a');
+        a.href = objectUrl;
+        a.download = fileName;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(objectUrl);
+        this.showSuccess('File downloaded successfully!');
+      }
+    } catch (error) {
+      console.error('❌ Error downloading file:', error);
+      this.showError('Failed to download file');
     }
   }
 } 
