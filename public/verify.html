@@ -151,66 +151,6 @@
     font-weight: 500;
   }
 
-  /* PDF Viewer Styles - Enhanced to match Angular component */
-  .pdf-viewer-section {
-    margin: 1.5rem 0;
-    display: none;
-  }
-
-  .pdf-viewer-card {
-    background: #ffffff;
-    border-radius: 0.5rem;
-    border: 1px solid #e0e0e0;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-    overflow: hidden;
-  }
-
-  .pdf-viewer-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 1rem 1.5rem;
-    border-bottom: 1px solid #e0e0e0;
-    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-  }
-
-  .pdf-viewer-header h3 {
-    margin: 0;
-    font-size: 1.1rem;
-    color: #2c3e50;
-    font-weight: 600;
-  }
-
-  .close-btn {
-    background: #dc3545;
-    color: white;
-    border: none;
-    padding: 0.5rem 1rem;
-    border-radius: 0.3rem;
-    cursor: pointer;
-    font-size: 0.9rem;
-    transition: all 0.3s ease;
-    font-weight: 500;
-  }
-
-  .close-btn:hover {
-    background: #c82333;
-    transform: translateY(-1px);
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-  }
-
-  .pdf-viewer-content {
-    padding: 0;
-    background: #f8f9fa;
-  }
-
-  .pdf-viewer-content iframe {
-    width: 100%;
-    height: 600px;
-    border: 0;
-    display: block;
-  }
-
   /* Certification item styles - Enhanced to match Angular component */
   .certifications-container {
     margin-top: 1rem;
@@ -270,17 +210,6 @@
   .btn-sm {
     padding: 0.3rem 0.6rem;
     font-size: 0.8rem;
-  }
-
-  .btn-secondary {
-    background: #6c757d;
-    color: white;
-  }
-
-  .btn-secondary:hover {
-    background: #5a6268;
-    transform: translateY(-1px);
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
   }
 
   .btn-primary {
@@ -354,10 +283,6 @@
       width: 100%;
       justify-content: flex-start;
     }
-
-    .pdf-viewer-content iframe {
-      height: 400px;
-    }
   }
 
   @media (max-width: 600px) {
@@ -373,10 +298,6 @@
 
     .array-item {
       font-size: 0.8rem;
-    }
-
-    .pdf-viewer-content iframe {
-      height: 350px;
     }
   }
 </style>
@@ -419,8 +340,6 @@
         <h3>🏢 Company Profile</h3>
         <div id="profile-fields"></div>
       </section>
-
-
     </div>
   </div>
 
@@ -436,6 +355,10 @@
     const verificationDiv = document.getElementById("verification");
     const successMessage = document.getElementById("success-message");
     const errorMessage = document.getElementById("error-message");
+
+    // Auto-refresh interval (in milliseconds) - refresh every 30 seconds
+    const AUTO_REFRESH_INTERVAL = 30000;
+    let autoRefreshTimer = null;
 
     refreshBtn.addEventListener("click", loadProfile);
 
@@ -459,18 +382,64 @@
     async function loadProfile() {
       showLoading();
       try {
+        console.log('🔍 Fetching latest profile from:', API);
         const response = await fetch(API);
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        
+        if (!response.ok) {
+          if (response.status === 404) {
+            throw new Error("No profiles available - this is normal for empty database");
+          } else {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+          }
+        }
 
-        const { metadata, profile_data, signature_verified } = await response.json();
-        if (!profile_data || !metadata) throw new Error("Incomplete profile data");
+        const data = await response.json();
+        console.log('📡 Raw response:', data);
+
+        if (!data || !data.success) {
+          throw new Error("No valid response received from server");
+        }
+
+        const { metadata, profile_data, signature_verified } = data;
+        if (!profile_data || !metadata) {
+          throw new Error("Incomplete profile data");
+        }
+
+        console.log('🔍 DEBUG: Complete profile_data:', profile_data);
+        console.log('🔍 DEBUG: Profile certifications:', profile_data.certifications);
+        console.log('🔍 DEBUG: Certifications type:', typeof profile_data.certifications);
+        console.log('🔍 DEBUG: Certifications is array:', Array.isArray(profile_data.certifications));
+        if (Array.isArray(profile_data.certifications)) {
+          console.log('🔍 DEBUG: Certifications length:', profile_data.certifications.length);
+          if (profile_data.certifications.length > 0) {
+            console.log('🔍 DEBUG: First certification:', profile_data.certifications[0]);
+            console.log('🔍 DEBUG: First certification type:', typeof profile_data.certifications[0]);
+            console.log('🔍 DEBUG: First certification keys:', Object.keys(profile_data.certifications[0] || {}));
+          }
+        }
 
         renderMetadata(metadata);
         renderProfile(profile_data);
         showVerificationStatus(signature_verified);
         showContent();
+        
+        // Show success message
+        showSuccess('Profile data loaded successfully');
+        
+        // Start auto-refresh timer
+        startAutoRefresh();
+        
       } catch (err) {
-        showError("Error fetching profile: " + err.message);
+        console.error('❌ Error loading profile:', err);
+        
+        // Handle specific error cases like the Angular component does
+        if (err.message.includes("No profiles available")) {
+          showError("No company profiles are currently available. This is normal for an empty database.");
+        } else if (err.message.includes("Failed to fetch")) {
+          showError("Cannot connect to backend server. Please check if the server is running.");
+        } else {
+          showVerificationError("Error fetching profile: " + err.message);
+        }
       }
     }
 
@@ -480,7 +449,7 @@
       statusDiv.style.display = "block";
     }
 
-    function showError(msg) {
+    function showVerificationError(msg) {
       statusDiv.style.display = "none";
       profileContent.style.display = "none";
       errorDiv.style.display = "block";
@@ -501,10 +470,10 @@
     }
 
     function renderMetadata(meta) {
-      document.getElementById("version").textContent = meta.version;
-      document.getElementById("profile-hash").textContent = meta.profile_hash;
-      document.getElementById("created-at").textContent = new Date(meta.created_at).toLocaleString();
-      document.getElementById("updated-at").textContent = new Date(meta.updated_at).toLocaleString();
+      document.getElementById("version").textContent = meta.version || 'N/A';
+      document.getElementById("profile-hash").textContent = meta.profile_hash || 'N/A';
+      document.getElementById("created-at").textContent = meta.created_at ? new Date(meta.created_at).toLocaleString() : 'N/A';
+      document.getElementById("updated-at").textContent = meta.updated_at ? new Date(meta.updated_at).toLocaleString() : 'N/A';
     }
 
     function renderProfile(data) {
@@ -544,7 +513,14 @@
       arrays.forEach(f => {
         if (Array.isArray(data[f.key])) {
           if (f.key === "certifications") {
-            // Special handling for certifications with PDF viewing
+            // Special handling for certifications with enhanced debugging
+            console.log('🔍 DEBUG: Processing certifications array:', data[f.key]);
+            console.log('🔍 DEBUG: Certifications type:', typeof data[f.key]);
+            console.log('🔍 DEBUG: Certifications length:', data[f.key].length);
+            console.log('🔍 DEBUG: First certification item:', data[f.key][0]);
+            console.log('🔍 DEBUG: First certification item type:', typeof data[f.key][0]);
+            console.log('🔍 DEBUG: First certification item keys:', Object.keys(data[f.key][0] || {}));
+            
             container.innerHTML += `
               <div class="field">
                 <div class="field-label">${f.label}</div>
@@ -568,21 +544,136 @@
     }
 
     function renderCertificationItem(cert) {
-      const fileName = cert.split('/').pop() || cert;
-      const documentId = extractDocumentId(cert);
+      console.log('🔍 DEBUG: renderCertificationItem called with:', cert);
+      console.log('🔍 DEBUG: cert type:', typeof cert);
+      console.log('🔍 DEBUG: cert keys:', Object.keys(cert || {}));
+      
+      let fileName = '';
+      let documentUrl = '';
+      
+      // Handle both old string format and new CertificationDetail format
+      if (typeof cert === 'string') {
+        // Old format: just a URL string
+        documentUrl = cert;
+        fileName = extractFileNameFromUrl(cert);
+        console.log('🔍 DEBUG: Old string format - URL:', documentUrl, 'FileName:', fileName);
+      } else if (cert && typeof cert === 'object' && 'url' in cert) {
+        // New format: CertificationDetail object with { url, certificationName }
+        documentUrl = cert.url;
+        fileName = cert.certificationName || extractFileNameFromUrl(cert.url);
+        console.log('🔍 DEBUG: New object format - URL:', documentUrl, 'FileName:', fileName);
+      } else {
+        // Fallback: try to extract any useful information
+        documentUrl = String(cert);
+        fileName = extractFileNameFromUrl(documentUrl);
+        console.log('🔍 DEBUG: Fallback format - URL:', documentUrl, 'FileName:', fileName);
+      }
       
       return `
         <div class="certification-item">
           <div class="certification-info">
             <span class="certification-name">${fileName}</span>
             <div class="certification-actions">
-              <button class="btn btn-primary btn-sm" onclick="downloadFile('${cert}', '${fileName}')">
+              <button class="btn btn-primary btn-sm" onclick="downloadFile('${documentUrl}', '${fileName}')">
                 📥 Download
               </button>
             </div>
           </div>
         </div>
       `;
+    }
+
+    // Helper function to extract filename from URL (matches Angular component logic)
+    function extractFileNameFromUrl(url) {
+      if (!url) return 'Unknown File';
+      
+      try {
+        // If it's a URL, extract the filename from the path
+        if (url.includes('/')) {
+          const pathSegments = url.split('/');
+          const lastSegment = pathSegments[pathSegments.length - 1];
+          
+          // If the last segment looks like a filename, use it
+          if (lastSegment && lastSegment.includes('.')) {
+            return lastSegment;
+          }
+          
+          // Otherwise, try to extract from the full URL
+          const urlObj = new URL(url);
+          const pathname = urlObj.pathname;
+          const pathSegments2 = pathname.split('/');
+          const filename = pathSegments2[pathSegments2.length - 1];
+          
+          if (filename && filename.includes('.')) {
+            return filename;
+          }
+        }
+        
+        // If no filename found, return a default
+        return 'Document';
+      } catch (error) {
+        console.error('❌ Error extracting filename from URL:', error);
+        return 'Document';
+      }
+    }
+
+    // Auto-refresh functionality
+    function startAutoRefresh() {
+      // Clear any existing timer
+      if (autoRefreshTimer) {
+        clearInterval(autoRefreshTimer);
+      }
+      
+      // Start new auto-refresh timer
+      autoRefreshTimer = setInterval(() => {
+        console.log('🔄 Auto-refreshing profile data...');
+        loadProfile();
+      }, AUTO_REFRESH_INTERVAL);
+      
+      console.log(`✅ Auto-refresh started. Will refresh every ${AUTO_REFRESH_INTERVAL / 1000} seconds.`);
+    }
+
+    function stopAutoRefresh() {
+      if (autoRefreshTimer) {
+        clearInterval(autoRefreshTimer);
+        autoRefreshTimer = null;
+        console.log('⏹️ Auto-refresh stopped.');
+      }
+    }
+
+    // Enhanced download file function - matches Angular component exactly
+    async function downloadFile(documentIdOrUrl, fileName) {
+      try {
+        console.log('🔍 downloadFile called with:', documentIdOrUrl);
+        
+        const documentId = extractDocumentId(documentIdOrUrl);
+        console.log('🎯 Final documentId:', documentId);
+        
+        const url = `${API_BASE_URL}/documents/${documentId}/download`;
+        console.log('🌐 Requesting URL:', url);
+
+        const response = await fetch(url);
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+
+        const blob = await response.blob();
+        const objectUrl = URL.createObjectURL(blob);
+        
+        const a = document.createElement('a');
+        a.href = objectUrl;
+        a.download = fileName;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(objectUrl);
+        
+        console.log('✅ File downloaded successfully:', fileName);
+        showSuccess('File downloaded successfully!');
+      } catch (error) {
+        console.error('❌ Error downloading file:', error);
+        showError('Failed to download file: ' + error.message);
+      }
     }
 
     // Enhanced helper function to extract document ID from URL
@@ -626,45 +717,24 @@
       return documentIdOrUrl;
     }
 
-
-
-    // Enhanced download file function - matches Angular component exactly
-    async function downloadFile(documentIdOrUrl, fileName) {
-      try {
-        console.log('🔍 downloadFile called with:', documentIdOrUrl);
-        
-        const documentId = extractDocumentId(documentIdOrUrl);
-        console.log('🎯 Final documentId:', documentId);
-        
-        const url = `${API_BASE_URL}/documents/${documentId}/download`;
-        console.log('🌐 Requesting URL:', url);
-
-        const response = await fetch(url);
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-        }
-
-        const blob = await response.blob();
-        const objectUrl = URL.createObjectURL(blob);
-        
-        const a = document.createElement('a');
-        a.href = objectUrl;
-        a.download = fileName;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(objectUrl);
-        
-        console.log('✅ File downloaded successfully:', fileName);
-        showSuccess('File downloaded successfully!');
-      } catch (error) {
-        console.error('❌ Error downloading file:', error);
-        showError('Failed to download file: ' + error.message);
+    // Page visibility API to pause auto-refresh when tab is not visible
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) {
+        console.log('📱 Tab hidden, pausing auto-refresh');
+        stopAutoRefresh();
+      } else {
+        console.log('📱 Tab visible, resuming auto-refresh');
+        startAutoRefresh();
       }
-    }
+    });
 
+    // Cleanup on page unload
+    window.addEventListener('beforeunload', () => {
+      stopAutoRefresh();
+    });
 
-
+    // Initialize with automatic profile loading
+    console.log('🚀 Initializing verify.html with automatic profile loading...');
     loadProfile();
   </script>
 </body>
