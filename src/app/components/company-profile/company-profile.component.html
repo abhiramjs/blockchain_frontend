@@ -224,6 +224,7 @@
               <label>Certifications</label>
               <div formArrayName="certifications" class="array-inputs">
                 <div *ngFor="let cert of certificationsArray.controls; let i = index" class="array-item">
+                  <!-- File Upload Section -->
                   <div class="file-upload-container">
                     <input type="file" (change)="onFileSelect($event, i)" class="form-input file-input" accept=".pdf,.csv,.png,.jpg,.jpeg,.docx">
                     <div class="file-info" *ngIf="certificationFiles[i]">
@@ -231,6 +232,17 @@
                       <span class="file-size">({{ (certificationFiles[i].size / 1024 / 1024).toFixed(2) }} MB)</span>
                     </div>
                   </div>
+                  
+                  <!-- Simplified Certification Details Section -->
+                  <div class="certification-details" [formGroup]="$any(cert)">
+                    <div class="details-grid">
+                      <div class="form-group">
+                        <label>Certificate Name *</label>
+                        <input type="text" formControlName="certificationName" class="form-input" placeholder="Enter certificate name">
+                      </div>
+                    </div>
+                  </div>
+                  
                   <button type="button" class="remove-btn" (click)="removeCertificationItem(i)">❌</button>
                 </div>
                 <button type="button" class="add-btn" (click)="addCertificationItem()">➕ Add Certification</button>
@@ -502,9 +514,9 @@
               <div class="certifications-container" *ngIf="currentProfile.certifications.length > 0">
                 <div class="certification-item" *ngFor="let cert of currentProfile.certifications; let i = index">
                   <div class="certification-info">
-                    <span class="certification-name">{{ cert.split('/').pop() || cert }}</span>
+                    <span class="certification-name">{{ getCertificationDisplayName(cert) }}</span>
                     <div class="certification-actions">
-                      <button class="btn btn-primary btn-sm" (click)="downloadFile(cert, cert.split('/').pop() || 'document')">
+                      <button class="btn btn-primary btn-sm" (click)="downloadFile(getCertificationUrl(cert), getCertificationDisplayName(cert))">
                         📥 Download
                       </button>
                     </div>
@@ -812,21 +824,47 @@
                 </div>
                 <div formArrayName="certifications" class="array-inputs">
                   <div *ngFor="let cert of updateCertificationsArray.controls; let i = index" class="array-item">
+                    <!-- File Upload Section -->
                     <div class="file-upload-container">
                       <div class="file-status-indicator">
-                        <span class="status-badge existing" *ngIf="isExistingCertification(i) && !isReplacingCertification(i)">EXISTING</span>
+                        <span class="status-badge existing" *ngIf="isPreservingCertification(i)">EXISTING</span>
                         <span class="status-badge replacing" *ngIf="isReplacingCertification(i)">REPLACING</span>
-                        <span class="status-badge new" *ngIf="!isExistingCertification(i) && updateCertificationItems[i]?.file">NEW</span>
+                        <span class="status-badge new" *ngIf="isAppendingCertification(i)">NEW</span>
+                        <span class="status-badge removed" *ngIf="updateCertificationItems[i]?.operation === 'remove'">REMOVED</span>
+                        <span class="status-badge empty" *ngIf="isEmptyCertificationSlot(i)">EMPTY</span>
                       </div>
                       <input type="file" (change)="onUpdateFileSelect($event, i)" class="form-input file-input" accept=".pdf,.csv,.png,.jpg,.jpeg,.docx">
                       <div class="file-info" *ngIf="hasCertificationFile(i)">
                         <span class="file-name">{{ getCertificationFileName(i) }}</span>
-                        <span class="file-size" *ngIf="!isExistingCertification(i) && updateCertificationItems[i]?.file">({{ getFileSizeInMB(i) }} MB)</span>
-                        <span class="file-status" *ngIf="isExistingCertification(i) && !isReplacingCertification(i)">(existing file)</span>
+                        <span class="file-size" *ngIf="isAppendingCertification(i) && updateCertificationItems[i]?.file">({{ getFileSizeInMB(i) }} MB)</span>
+                        <span class="file-status" *ngIf="isPreservingCertification(i)">(existing file)</span>
                         <span class="file-status replacing" *ngIf="isReplacingCertification(i)">(replacing existing file)</span>
+                        <span class="file-status new" *ngIf="isAppendingCertification(i)">(new file)</span>
+                        <span class="file-status removed" *ngIf="updateCertificationItems[i]?.operation === 'remove'">(marked for removal)</span>
+                        <span class="file-status empty" *ngIf="isEmptyCertificationSlot(i)">(empty slot - upload to add)</span>
                       </div>
                     </div>
-                    <button type="button" class="remove-btn" (click)="removeUpdateCertificationItem(i)">❌</button>
+                    
+                                      <!-- Simplified Certification Details Section -->
+                  <div class="certification-details" [formGroup]="$any(cert)">
+                    <div class="details-grid">
+                      <div class="form-group">
+                        <label>Certificate Name *</label>
+                        <input type="text" formControlName="certificationName" class="form-input" placeholder="Enter certificate name">
+                      </div>
+                    </div>
+                  </div>
+                    
+                    <div class="file-actions">
+                      <button type="button" class="restore-btn" *ngIf="updateCertificationItems[i]?.operation === 'remove'" 
+                              (click)="restoreUpdateCertificationItem(i)" title="Restore file">
+                        🔄
+                      </button>
+                      <button type="button" class="remove-btn" (click)="removeUpdateCertificationItem(i)" 
+                              [title]="updateCertificationItems[i] && updateCertificationItems[i].operation === 'remove' ? 'Confirm removal' : 'Remove file'">
+                        {{ updateCertificationItems[i] && updateCertificationItems[i].operation === 'remove' ? '🗑️' : '❌' }}
+                      </button>
+                    </div>
                   </div>
                   <button type="button" class="add-btn" (click)="addUpdateCertificationItem()">➕ Add Certification</button>
                 </div>
@@ -839,6 +877,9 @@
                   </button>
                   <button type="button" class="utility-btn" (click)="debugCertificationFiles()" title="Debug file state">
                     🐛 Debug Files
+                  </button>
+                  <button type="button" class="utility-btn" (click)="debugCertificationItemsState()" title="Debug certification items state">
+                    🔍 Debug Items State
                   </button>
                   <button type="button" class="utility-btn" (click)="checkBackendFileStorage()" title="Check backend file storage">
                     🔍 Check Backend Files

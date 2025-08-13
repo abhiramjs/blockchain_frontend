@@ -21,8 +21,13 @@ interface CompanyProfile {
   customer_segments: string[];
   competitive_position: string;
   partnerships: string[];
-  certifications: string[]; // Changed back to string[] for URLs
+  certifications: CertificationDetail[]; // Now stores certification details with URLs
   sales_channels: string[];
+}
+
+interface CertificationDetail {
+  url: string; // The file URL (off-chain)
+  certificationName: string; // Stored on-chain
 }
 
 interface ProfileResponse {
@@ -119,6 +124,10 @@ interface CertificationFile {
   url: string;
   isExisting: boolean;
   file?: File; // Only present for new files
+  operation: 'preserve' | 'replace' | 'append' | 'remove'; // Track what operation to perform
+  originalIndex?: number; // Track original position for replacements
+  // Simplified certification details to be stored on-chain
+  certificationName: string;
 }
 
 @Component({
@@ -257,7 +266,7 @@ export class CompanyProfileComponent implements OnInit {
       customer_segments: this.fb.array([]),
       competitive_position: ['', Validators.required],
       partnerships: this.fb.array([]),
-      certifications: this.fb.array([]), // This will store file references
+      certifications: this.fb.array([]), // This will store certification objects with details
       sales_channels: this.fb.array([]),
       private_key: ['', Validators.required]
     });
@@ -276,7 +285,7 @@ export class CompanyProfileComponent implements OnInit {
       customer_segments: this.fb.array([]),
       competitive_position: ['', Validators.required],
       partnerships: this.fb.array([]),
-      certifications: this.fb.array([]), // This will store file references
+      certifications: this.fb.array([]), // This will store certification objects with details
       sales_channels: this.fb.array([])
       // Removed private_key field as it's handled separately
     });
@@ -324,7 +333,7 @@ export class CompanyProfileComponent implements OnInit {
   }
 
   get certificationsArray() {
-    return this.createForm.get('certifications') as FormArray;
+    return this.createForm.get('certifications') as FormArray<FormGroup>;
   }
 
   get salesChannelsArray() {
@@ -353,7 +362,7 @@ export class CompanyProfileComponent implements OnInit {
   }
 
   get updateCertificationsArray() {
-    return this.updateForm.get('certifications') as FormArray;
+    return this.updateForm.get('certifications') as FormArray<FormGroup>;
   }
 
   get updateSalesChannelsArray() {
@@ -372,7 +381,12 @@ export class CompanyProfileComponent implements OnInit {
   // Override the addArrayItem method for certifications to handle file inputs
   addCertificationItem() {
     const certificationsArray = this.createForm.get('certifications') as FormArray;
-    certificationsArray.push(this.fb.control(''));
+    // Create a simplified FormGroup with only certificate name
+    const newCertificationGroup = this.fb.group({
+      certificationName: ['', Validators.required],
+      fileName: [''] // This will store the uploaded file name
+    });
+    certificationsArray.push(newCertificationGroup);
     this.certificationFiles.push(null as any);
   }
 
@@ -386,26 +400,40 @@ export class CompanyProfileComponent implements OnInit {
   // Add a new certification file slot (for new files)
   addUpdateCertificationItem() {
     console.log('🔍 DEBUG: Adding new certification file slot');
+    console.log('🔍 DEBUG: Current updateCertificationItems length:', this.updateCertificationItems.length);
+    console.log('🔍 DEBUG: Current form certifications array length:', (this.updateForm.get('certifications') as FormArray)?.length);
     
-    // Add to form array
+    // Add to form array - create a simplified FormGroup with only certificate name
     const certificationsArray = this.updateForm.get('certifications') as FormArray;
-    certificationsArray.push(this.fb.control(''));
+    const newCertificationGroup = this.fb.group({
+      certificationName: ['', Validators.required],
+      fileName: [''] // This will store the uploaded file name
+    });
+    certificationsArray.push(newCertificationGroup);
     
     // Add to our organized file management
     const newFileId = `new_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    this.updateCertificationItems.push({
+    const newItem = {
       id: newFileId,
       name: '',
       url: '',
-      isExisting: false
-    });
+      isExisting: false,
+      operation: 'append' as const,
+      // Initialize simplified certification details
+      certificationName: ''
+    };
+    this.updateCertificationItems.push(newItem);
     
     console.log('🔍 DEBUG: Added new certification slot. Total items:', this.updateCertificationItems.length);
     console.log('🔍 DEBUG: Form array length:', certificationsArray.length);
+    console.log('🔍 DEBUG: New item added:', newItem);
+    console.log('🔍 DEBUG: Full updateCertificationItems array:', this.updateCertificationItems);
     
     // Debug form validation after adding item
     setTimeout(() => {
       this.debugFormValidation();
+      console.log('🔍 DEBUG: After adding item - Form valid:', this.updateForm.valid);
+      console.log('🔍 DEBUG: After adding item - Form certifications length:', (this.updateForm.get('certifications') as FormArray)?.length);
     }, 100);
   }
 
@@ -413,15 +441,39 @@ export class CompanyProfileComponent implements OnInit {
   removeUpdateCertificationItem(index: number) {
     console.log('🔍 DEBUG: Removing certification item at index:', index);
     
-    // Remove from form array
-    const certificationsArray = this.updateForm.get('certifications') as FormArray;
-    certificationsArray.removeAt(index);
+    const item = this.updateCertificationItems[index];
+    if (item) {
+      if (item.isExisting) {
+        // Mark existing file for removal
+        item.operation = 'remove';
+        console.log(`🔍 DEBUG: Marked existing file "${item.name}" for removal`);
+        this.showSuccess(`🗑️ File "${item.name}" marked for removal`);
+      } else {
+        // Remove new file completely
+        this.updateCertificationItems.splice(index, 1);
+        
+        // Remove from form array
+        const certificationsArray = this.updateForm.get('certifications') as FormArray;
+        certificationsArray.removeAt(index);
+        
+        console.log(`🔍 DEBUG: Removed new file "${item.name}" completely`);
+        this.showSuccess(`🗑️ File "${item.name}" removed`);
+      }
+    }
     
-    // Remove from our organized file management
-    this.updateCertificationItems.splice(index, 1);
+    console.log('🔍 DEBUG: Certification array length after removal:', this.updateCertificationItems.length);
+  }
+
+  // Method to restore a removed certification file
+  restoreUpdateCertificationItem(index: number) {
+    console.log('🔍 DEBUG: Restoring certification item at index:', index);
     
-    console.log('🔍 DEBUG: Certification array length after removal:', certificationsArray.length);
-    console.log('🔍 DEBUG: updateCertificationItems array length after removal:', this.updateCertificationItems.length);
+    const item = this.updateCertificationItems[index];
+    if (item && item.operation === 'remove') {
+      item.operation = 'preserve';
+      console.log(`🔍 DEBUG: Restored file "${item.name}" from removal`);
+      this.showSuccess(`🔄 File "${item.name}" restored`);
+    }
   }
 
   // File upload method for certifications in create form
@@ -455,7 +507,8 @@ export class CompanyProfileComponent implements OnInit {
       // Update the form control with file name for display
       const certificationsArray = this.createForm.get('certifications') as FormArray;
       if (certificationsArray.at(index)) {
-        certificationsArray.at(index).setValue(file.name);
+        const certificationGroup = certificationsArray.at(index) as FormGroup;
+        certificationGroup.patchValue({ fileName: file.name });
       }
 
       this.showSuccess(`File "${file.name}" selected successfully.`);
@@ -524,6 +577,8 @@ export class CompanyProfileComponent implements OnInit {
   onUpdateFileSelect(event: any, index: number) {
     console.log('🔍 DEBUG: File upload triggered for index:', index);
     console.log('🔍 DEBUG: Event:', event);
+    console.log('🔍 DEBUG: Current updateCertificationItems length:', this.updateCertificationItems.length);
+          console.log('🔍 DEBUG: Current form certifications length:', (this.updateForm.get('certifications') as FormArray)?.length);
     
     const file = event.target.files[0];
     if (file) {
@@ -554,6 +609,8 @@ export class CompanyProfileComponent implements OnInit {
       const certificationItem = this.updateCertificationItems[index];
       if (!certificationItem) {
         console.error('❌ No certification item found at index:', index);
+        console.error('❌ updateCertificationItems array:', this.updateCertificationItems);
+        console.error('❌ Form certifications array:', this.updateForm.get('certifications')?.value);
         return;
       }
 
@@ -563,20 +620,23 @@ export class CompanyProfileComponent implements OnInit {
         name: certificationItem.name,
         url: certificationItem.url,
         isExisting: certificationItem.isExisting,
-        hasFile: !!certificationItem.file
+        hasFile: !!certificationItem.file,
+        operation: certificationItem.operation
       });
 
-      // Check if this is replacing an existing file
-      const isReplacingExisting = certificationItem.isExisting;
+      // Smart detection: Check if this is replacing an existing file or adding a new one
+      const hasExistingFile = certificationItem.isExisting && certificationItem.url && certificationItem.url.trim() !== '';
+      const isReplacingExisting = hasExistingFile;
       
       if (isReplacingExisting) {
-        // Updating an existing file
+        // Updating an existing file - REPLACE operation
         console.log('🔍 DEBUG: Replacing existing file:', certificationItem.name);
         console.log('🔍 DEBUG: Old URL that will be replaced:', certificationItem.url);
         
         certificationItem.name = file.name;
         certificationItem.file = file; // Mark for upload
-        certificationItem.isExisting = false; // Now it's a new file that will be uploaded
+        certificationItem.operation = 'replace'; // Mark as replacement operation
+        // Keep the original URL and isExisting flag to help with replacement logic
         
         // Log the AFTER state for replacement
         console.log('🔍 DEBUG: AFTER file replacement - certificationItem at index', index, ':', {
@@ -585,16 +645,21 @@ export class CompanyProfileComponent implements OnInit {
           url: certificationItem.url,
           isExisting: certificationItem.isExisting,
           hasFile: !!certificationItem.file,
+          operation: certificationItem.operation,
           fileSize: certificationItem.file?.size,
           fileType: certificationItem.file?.type
         });
         
-        this.showSuccess(`File "${file.name}" will replace the existing file "${certificationItem.name}".`);
+        this.showSuccess(`🔄 File "${file.name}" will REPLACE the existing file "${certificationItem.name}".`);
       } else {
-        // Adding a new file to an empty slot
-        console.log('🔍 DEBUG: Adding new file to empty slot');
+        // Adding a new file - APPEND operation
+        console.log('🔍 DEBUG: Adding new file to empty slot or replacing empty slot');
         certificationItem.name = file.name;
         certificationItem.file = file;
+        certificationItem.operation = 'append'; // Mark as append operation
+        // Clear URL for new files (append operation)
+        certificationItem.url = '';
+        certificationItem.isExisting = false; // Mark as new file
         
         // Log the AFTER state for new file
         console.log('🔍 DEBUG: AFTER new file addition - certificationItem at index', index, ':', {
@@ -603,23 +668,32 @@ export class CompanyProfileComponent implements OnInit {
           url: certificationItem.url,
           isExisting: certificationItem.isExisting,
           hasFile: !!certificationItem.file,
+          operation: certificationItem.operation,
           fileSize: certificationItem.file?.size,
           fileType: certificationItem.file?.type
         });
         
-        this.showSuccess(`File "${file.name}" added successfully.`);
+        this.showSuccess(`➕ File "${file.name}" ADDED as a NEW certification file.`);
       }
       
       // Update the form control with file name for display
       const certificationsArray = this.updateForm.get('certifications') as FormArray;
       if (certificationsArray.at(index)) {
-        certificationsArray.at(index).setValue(file.name);
+        const certificationControl = certificationsArray.at(index) as FormGroup;
+        certificationControl.patchValue({
+          fileName: file.name
+        });
         console.log('🔍 DEBUG: Form control updated with filename:', file.name);
+      } else {
+        console.error('❌ ERROR: Form control not found at index:', index);
+        console.error('❌ ERROR: Form certifications array length:', certificationsArray.length);
       }
       
       // Debug form validation after file selection
       setTimeout(() => {
         this.debugFormValidation();
+        console.log('🔍 DEBUG: After file selection - Form valid:', this.updateForm.valid);
+        console.log('🔍 DEBUG: After file selection - updateCertificationItems:', this.updateCertificationItems);
       }, 100);
     } else {
       console.log('🔍 DEBUG: No file selected');
@@ -639,76 +713,264 @@ export class CompanyProfileComponent implements OnInit {
         url: item.url,
         isExisting: item.isExisting,
         hasFile: !!item.file,
+        operation: item.operation,
         fileSize: item.file?.size,
         fileType: item.file?.type
       });
       
-      if (item.file) {
-        // This is a new file that needs to be uploaded
+      if (item.operation === 'replace' && item.file) {
+        // This is a file that's replacing an existing file
         try {
-          console.log(`🔄 Uploading new file at index ${i}: ${item.name}`);
+          console.log(`🔄 Uploading replacement file at index ${i}: ${item.name}`);
           console.log(`🔍 DEBUG: This file will replace existing URL: ${item.url}`);
           
-          const form = new FormData();
-          form.append('file', item.file);
-
-          // Use the new documents/upload endpoint with proper error handling
-          const response = await lastValueFrom(
-            this.http.post<any>(
-              `${this.API_BASE_URL}/documents/upload`,
-              form,
-              {
-                observe: 'events',
-                reportProgress: true
-              }
-            ).pipe(
-              filter((event: any) => event.type === 4), // Only complete events
-              map((event: any) => event.body)
-            )
-          );
-
-          if (response && response.id) {
-            // Construct the download URL for the uploaded file
-            const downloadUrl = `${this.API_BASE_URL}/documents/${response.id}/download`;
-            uploadedUrls.push(downloadUrl);
-            console.log(`✅ Update certification file uploaded at index ${i}: ${response.original_name} (ID: ${response.id})`);
-            console.log(`🔍 DEBUG: Pushed NEW URL to uploadedUrls[${i}]: ${downloadUrl}`);
-            console.log(`🔍 DEBUG: This NEW URL replaces the OLD URL: ${item.url}`);
-          } else {
-            throw new Error('Invalid response from server');
-          }
+          // Upload file and create certification details
+          const downloadUrl = await this.uploadFileAndCreateCertification(item.file, i);
+          uploadedUrls.push(downloadUrl);
+          console.log(`✅ Replacement file uploaded and certification created at index ${i}: ${downloadUrl}`);
         } catch (error: any) {
-          console.error(`❌ Error uploading update certification file at index ${i}: ${item.name}`, error);
-          
-          // Extract error message from response
-          let errorMessage = 'Upload failed';
-          if (error?.error?.error) {
-            errorMessage = error.error.error;
-          } else if (error?.error?.message) {
-            errorMessage = error.error.message;
-          } else if (error?.message) {
-            errorMessage = error.message;
-          } else if (typeof error === 'string') {
-            errorMessage = error;
-          }
-          
-          this.readableError = errorMessage;
-          throw new Error(`Failed to upload ${item.name}: ${errorMessage}`);
+          console.error(`❌ Error uploading replacement file at index ${i}: ${item.name}`, error);
+          throw new Error(`Failed to upload replacement file ${item.name}: ${error.message || error}`);
         }
-      } else if (item.isExisting) {
+      } else if (item.operation === 'append' && item.file) {
+        // This is a new file being appended
+        try {
+          console.log(`➕ Uploading new appended file at index ${i}: ${item.name}`);
+          
+          // Upload file and create certification details
+          const downloadUrl = await this.uploadFileAndCreateCertification(item.file, i);
+          uploadedUrls.push(downloadUrl);
+          console.log(`✅ Appended file uploaded and certification created at index ${i}: ${downloadUrl}`);
+        } catch (error: any) {
+          console.error(`❌ Error uploading appended file at index ${i}: ${item.name}`, error);
+          throw new Error(`Failed to upload appended file ${item.name}: ${error.message || error}`);
+        }
+      } else if (item.operation === 'preserve' && item.url) {
         // This is an existing file that should be preserved
         console.log(`ℹ️ Preserving existing file at index ${i}: ${item.name}`);
-        console.log(`🔍 DEBUG: Pushed EXISTING URL to uploadedUrls[${i}]: ${item.url}`);
+        console.log(`🔍 DEBUG: Pushed PRESERVED URL to uploadedUrls[${uploadedUrls.length}]: ${item.url}`);
         uploadedUrls.push(item.url);
+      } else if (item.operation === 'remove') {
+        // This file is marked for removal, skip it
+        console.log(`🗑️ Skipping removed file at index ${i}: ${item.name}`);
+        // Don't add anything to uploadedUrls for removed files
       } else {
-        // This is an empty slot, skip it
-        console.log(`ℹ️ Skipping empty slot at index ${i}`);
+        // This is an empty slot or invalid state, skip it
+        console.log(`ℹ️ Skipping empty/invalid slot at index ${i}: operation=${item.operation}, hasFile=${!!item.file}, url=${item.url}`);
       }
     }
 
     console.log('🔍 DEBUG: Final uploadedUrls array:', uploadedUrls);
     console.log('🔍 DEBUG: uploadedUrls length:', uploadedUrls.length);
     return uploadedUrls;
+  }
+
+  // Upload file and create certification details in one call
+  private async uploadFileAndCreateCertification(file: File, index: number): Promise<string> {
+    try {
+      // First upload the file using the existing endpoint
+      const form = new FormData();
+      form.append('file', file);
+
+      const response = await lastValueFrom(
+        this.http.post<any>(
+          `${this.API_BASE_URL}/documents/upload`,
+          form,
+          {
+            observe: 'events',
+            reportProgress: true
+          }
+        ).pipe(
+          filter((event: any) => event.type === 4), // Only complete events
+          map((event: any) => event.body)
+        )
+      );
+
+      if (!response || !response.id) {
+        throw new Error('Invalid response from server');
+      }
+
+      // Construct the download URL for the uploaded file
+      const downloadUrl = `${this.API_BASE_URL}/documents/${response.id}/download`;
+      
+      // Get certification details from the form
+      const certificationFormGroup = this.updateCertificationsArray.at(index) as FormGroup;
+      const formValues = certificationFormGroup ? certificationFormGroup.value : {};
+      
+      // Create simplified certification details request for the Rust backend
+      const certificationRequest = {
+        user_id: '00000000-0000-0000-0000-000000000000', // Use a valid UUID format
+        certification_name: formValues.certificationName || file.name.replace(/\.[^/.]+$/, ''),
+        file_url: downloadUrl,
+        file_hash: await this.generateFileHash(file),
+        file_name: file.name
+      };
+      
+      console.log('📝 Creating certification details in Rust backend:', certificationRequest);
+      
+      // Call the Rust backend to create certification details
+      const certResponse = await this.http.post<any>(
+        `${this.API_BASE_URL}/certifications/details`,
+        certificationRequest
+      ).toPromise();
+      
+      if (certResponse && certResponse.success) {
+        console.log('✅ Certification details created successfully in Rust backend:', certResponse);
+      } else {
+        console.warn('⚠️ Failed to create certification details in Rust backend:', certResponse);
+        // Continue with file upload even if certification details creation fails
+      }
+      
+      return downloadUrl;
+    } catch (error) {
+      console.error('❌ Error in uploadFileAndCreateCertification:', error);
+      throw error;
+    }
+  }
+
+  // Generate file hash for blockchain verification
+  private async generateFileHash(file: File): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const arrayBuffer = e.target?.result as ArrayBuffer;
+          const uint8Array = new Uint8Array(arrayBuffer);
+          
+          // Simple hash generation (in production, use crypto.subtle.digest)
+          let hash = 0;
+          for (let i = 0; i < uint8Array.length; i++) {
+            const char = uint8Array[i];
+            hash = ((hash << 5) - hash) + char;
+            hash = hash & hash; // Convert to 32-bit integer
+          }
+          
+          resolve(hash.toString(16));
+        } catch (error) {
+          reject(error);
+        }
+      };
+      reader.onerror = reject;
+      reader.readAsArrayBuffer(file);
+    });
+  }
+
+  // Create certification details for a file in the create profile flow
+  private async createCertificationDetailsForFile(file: File, fileUrl: string, index: number): Promise<void> {
+    try {
+      // Get certification details from the create form
+      const certificationFormGroup = this.certificationsArray.at(index) as FormGroup;
+      const formValues = certificationFormGroup ? certificationFormGroup.value : {};
+      
+      // Create simplified certification details request for the Rust backend
+      const certificationRequest = {
+        user_id: '00000000-0000-0000-0000-000000000000', // Use a valid UUID format
+        certification_name: formValues.certificationName || file.name.replace(/\.[^/.]+$/, ''),
+        file_url: fileUrl,
+        file_hash: await this.generateFileHash(file),
+        file_name: file.name
+      };
+      
+      console.log('📝 Creating certification details in Rust backend for create profile:', certificationRequest);
+      
+      // Call the Rust backend to create certification details
+      const certResponse = await this.http.post<any>(
+        `${this.API_BASE_URL}/certifications/details`,
+        certificationRequest
+      ).toPromise();
+      
+      if (certResponse && certResponse.success) {
+        console.log('✅ Certification details created successfully in Rust backend for create profile:', certResponse);
+      } else {
+        console.warn('⚠️ Failed to create certification details in Rust backend for create profile:', certResponse);
+      }
+    } catch (error) {
+      console.error('❌ Error creating certification details for create profile:', error);
+      throw error;
+    }
+  }
+
+  // Retrieve certification details from Rust backend
+  async getCertificationDetails(userId: string = '00000000-0000-0000-0000-000000000000'): Promise<any[]> {
+    try {
+      console.log('📋 Retrieving certification details from Rust backend for user:', userId);
+      
+      const response = await this.http.get<any>(
+        `${this.API_BASE_URL}/certifications/user/${userId}/details`
+      ).toPromise();
+      
+      if (response && response.success) {
+        console.log('✅ Retrieved certification details from Rust backend:', response.certifications);
+        return response.certifications || [];
+      } else {
+        console.warn('⚠️ Failed to retrieve certification details from Rust backend:', response);
+        return [];
+      }
+    } catch (error) {
+      console.error('❌ Error retrieving certification details from Rust backend:', error);
+      return [];
+    }
+  }
+
+  // Update certification details in Rust backend
+  async updateCertificationDetails(certificationId: string, updates: any): Promise<boolean> {
+    try {
+      console.log('✏️ Updating certification details in Rust backend:', certificationId, updates);
+      
+      const response = await this.http.post<any>(
+        `${this.API_BASE_URL}/certifications/details/${certificationId}`,
+        updates
+      ).toPromise();
+      
+      if (response && response.success) {
+        console.log('✅ Certification details updated successfully in Rust backend:', response);
+        return true;
+      } else {
+        console.warn('⚠️ Failed to update certification details in Rust backend:', response);
+        return false;
+      }
+    } catch (error) {
+      console.error('❌ Error updating certification details in Rust backend:', error);
+      return false;
+    }
+  }
+
+  // Helper method to get certification display name
+  getCertificationDisplayName(cert: any): string {
+    if (typeof cert === 'string') {
+      // Old format: just a URL string
+      return this.extractFileNameFromUrl(cert);
+    } else if (cert && typeof cert === 'object' && 'certificationName' in cert) {
+      // New format: CertificationDetail object
+      return cert.certificationName || this.extractFileNameFromUrl(cert.url);
+    }
+    return 'Unknown Certification';
+  }
+
+  // Helper method to get certification URL
+  getCertificationUrl(cert: any): string {
+    if (typeof cert === 'string') {
+      // Old format: just a URL string
+      return cert;
+    } else if (cert && typeof cert === 'object' && 'url' in cert) {
+      // New format: CertificationDetail object
+      return cert.url;
+    }
+    return '';
+  }
+
+  // Helper method to extract filename from URL
+  private extractFileNameFromUrl(url: string): string {
+    if (!url) return 'Unknown File';
+    
+    try {
+      const urlParts = url.split('/');
+      const fileName = urlParts[urlParts.length - 1];
+      return fileName || 'Unknown File';
+    } catch (error) {
+      console.warn('⚠️ Error extracting filename from URL:', url, error);
+      return 'Unknown File';
+    }
   }
 
   // Method to clear update certification files
@@ -1047,6 +1309,19 @@ export class CompanyProfileComponent implements OnInit {
       if (this.certificationFiles.some(file => file !== null)) {
         try {
           certificationUrls = await this.uploadCertificationFiles();
+          
+          // Create certification details in Rust backend for each uploaded file
+          for (let i = 0; i < this.certificationFiles.length; i++) {
+            const file = this.certificationFiles[i];
+            if (file) {
+              try {
+                await this.createCertificationDetailsForFile(file, certificationUrls[i], i);
+              } catch (error) {
+                console.warn(`⚠️ Failed to create certification details for file ${i}:`, error);
+                // Continue with profile creation even if certification details creation fails
+              }
+            }
+          }
         } catch (error) {
           this.showError(`Failed to upload certification files: ${error}`);
           this.isLoading = false;
@@ -1068,7 +1343,16 @@ export class CompanyProfileComponent implements OnInit {
         customer_segments: this.customerSegmentsArray.value,
         competitive_position: this.createForm.get('competitive_position')?.value,
         partnerships: this.partnershipsArray.value,
-        certifications: certificationUrls, // Use uploaded URLs
+        certifications: certificationUrls.map((url, index) => {
+          // Get the certificate name from the form
+          const certificationGroup = this.certificationsArray.at(index) as FormGroup;
+          const certificateName = certificationGroup?.get('certificationName')?.value || url.split('/').pop() || 'Document';
+          
+          return {
+            url: url,
+            certificationName: certificateName
+          };
+        }), // Convert URLs to simplified CertificationDetail objects
         sales_channels: this.salesChannelsArray.value
       };
 
@@ -1232,7 +1516,15 @@ export class CompanyProfileComponent implements OnInit {
       // Get existing certification URLs from the current profile
       let existingCertificationUrls: string[] = [];
       if (this.currentProfile && this.currentProfile.certifications) {
-        existingCertificationUrls = [...this.currentProfile.certifications];
+        // Extract URLs from CertificationDetail objects or use strings directly
+        existingCertificationUrls = this.currentProfile.certifications.map(cert => {
+          if (typeof cert === 'string') {
+            return cert;
+          } else if (cert && typeof cert === 'object' && 'url' in cert) {
+            return cert.url;
+          }
+          return '';
+        }).filter(url => url !== '');
         console.log('🔍 DEBUG: Existing certification URLs:', existingCertificationUrls);
       }
 
@@ -1253,36 +1545,133 @@ export class CompanyProfileComponent implements OnInit {
         console.log('🔍 DEBUG: No new files to upload, preserving existing files only');
       }
 
-      // Merge existing and new certification URLs
-      // Instead of just concatenating, we need to replace existing URLs with new ones at the correct indices
-      const allCertificationUrls: string[] = [];
-      
-      // First, copy all existing URLs
-      if (this.currentProfile && this.currentProfile.certifications) {
-        allCertificationUrls.push(...this.currentProfile.certifications);
-      }
-      
-      // Now replace the URLs at the indices where files were updated
+      // Build the final certification details array by processing each item in updateCertificationItems
+      const allCertificationDetails: CertificationDetail[] = [];
       let newUrlIndex = 0;
+      
+      console.log('🔍 DEBUG: === STARTING URL CONSTRUCTION ===');
+      console.log('🔍 DEBUG: Current profile certifications:', this.currentProfile?.certifications);
+      console.log('🔍 DEBUG: New certification URLs:', newCertificationUrls);
+      console.log('🔍 DEBUG: updateCertificationItems:', this.updateCertificationItems);
+      
+      // First, create a map of original positions to track replacements
+      const originalPositions = new Map<string, number>();
+      this.updateCertificationItems.forEach((item, index) => {
+        if (item.isExisting && item.operation === 'preserve') {
+          originalPositions.set(item.id, index);
+        }
+      });
+      
+      // Process each item in updateCertificationItems to build the final certification details array
       for (let i = 0; i < this.updateCertificationItems.length; i++) {
         const item = this.updateCertificationItems[i];
-        if (item.file && newUrlIndex < newCertificationUrls.length) {
-          // This item has a new file, replace the URL at this index
-          if (i < allCertificationUrls.length) {
-            console.log(`🔍 DEBUG: Replacing URL at index ${i}: "${allCertificationUrls[i]}" -> "${newCertificationUrls[newUrlIndex]}"`);
-            allCertificationUrls[i] = newCertificationUrls[newUrlIndex];
+        console.log(`🔍 DEBUG: Processing item ${i}:`, item);
+        
+        // Get the form data for this certification
+        const certificationFormGroup = this.updateCertificationsArray.at(i) as FormGroup;
+        const formData = certificationFormGroup ? certificationFormGroup.value : null;
+        
+        if (item.operation === 'replace') {
+          // REPLACE: This item is replacing an existing file
+          if (newUrlIndex < newCertificationUrls.length) {
+            const newUrl = newCertificationUrls[newUrlIndex];
+            console.log(`🔍 DEBUG: REPLACE at index ${i}: "${item.name}" replaces "${item.url}" -> "${newUrl}"`);
+            
+            // Create simplified certification detail with new URL but existing details
+            const certificationDetail: CertificationDetail = {
+              url: newUrl,
+              certificationName: formData?.certificationName || item.certificationName || item.name
+            };
+            
+            // For replacement, place at the original position
+            if (item.originalIndex !== undefined) {
+              allCertificationDetails[item.originalIndex] = certificationDetail;
+              console.log(`🔍 DEBUG: Placed replacement at original position ${item.originalIndex}`);
+            } else {
+              // Fallback: place at current position
+              allCertificationDetails[i] = certificationDetail;
+              console.log(`🔍 DEBUG: Placed replacement at current position ${i}`);
+            }
+            newUrlIndex++;
           } else {
-            // This is a new slot, add the URL
-            console.log(`🔍 DEBUG: Adding new URL at index ${i}: "${newCertificationUrls[newUrlIndex]}"`);
-            allCertificationUrls.push(newCertificationUrls[newUrlIndex]);
+            console.error('❌ ERROR: No more new URLs available for replacement at index', i);
           }
-          newUrlIndex++;
+        } else if (item.operation === 'append') {
+          // APPEND: This item is a new file being added
+          if (newUrlIndex < newCertificationUrls.length) {
+            const newUrl = newCertificationUrls[newUrlIndex];
+            console.log(`🔍 DEBUG: APPEND at index ${i}: "${item.name}" -> "${newUrl}"`);
+            
+            // Create simplified certification detail with new URL and form data
+            const certificationDetail: CertificationDetail = {
+              url: newUrl,
+              certificationName: formData?.certificationName || item.certificationName || item.name
+            };
+            
+            // For appending, push to the end
+            allCertificationDetails.push(certificationDetail);
+            console.log(`🔍 DEBUG: Appended new certification to end of array`);
+            newUrlIndex++;
+          } else {
+            console.error('❌ ERROR: No more new URLs available for append at index', i);
+          }
+        } else if (item.operation === 'preserve') {
+          // PRESERVE: This item keeps its existing URL but may have updated details
+          console.log(`🔍 DEBUG: PRESERVE at index ${i}: "${item.name}" -> "${item.url}"`);
+          
+          // Create simplified certification detail with existing URL but potentially updated form data
+          const certificationDetail: CertificationDetail = {
+            url: item.url,
+            certificationName: formData?.certificationName || item.certificationName || item.name
+          };
+          
+          // For existing files, place them at their original position
+          if (item.originalIndex !== undefined) {
+            allCertificationDetails[item.originalIndex] = certificationDetail;
+            console.log(`🔍 DEBUG: Preserved existing certification at original position ${item.originalIndex}`);
+          } else {
+            // Fallback: place at current position
+            allCertificationDetails[i] = certificationDetail;
+            console.log(`🔍 DEBUG: Preserved existing certification at current position ${i}`);
+          }
+        } else if (item.operation === 'remove') {
+          // REMOVE: This item should be removed
+          console.log(`🔍 DEBUG: REMOVE at index ${i}: "${item.name}" - skipping`);
+          // Don't add anything to the array for removed items
+        } else {
+          // EMPTY: This is an empty slot, no certification needed
+          console.log(`🔍 DEBUG: SKIP empty slot at index ${i}`);
         }
-        // If item.isExisting is true, keep the existing URL (already copied above)
-        // If neither, it's an empty slot, so no URL is added
       }
       
-      console.log('🔍 DEBUG: Final allCertificationUrls after replacement:', allCertificationUrls);
+      // 🔍 CRITICAL: Verify the final certification mapping
+      console.log('🔍 DEBUG: === CERTIFICATION MAPPING VERIFICATION ===');
+      console.log('🔍 DEBUG: Final allCertificationDetails array:', allCertificationDetails);
+      
+      // Additional verification: show what each item maps to
+      console.log('🔍 DEBUG: Final mapping verification:');
+      for (let i = 0; i < this.updateCertificationItems.length; i++) {
+        const item = this.updateCertificationItems[i];
+        if (item.operation === 'preserve') {
+          console.log(`🔍 DEBUG: Index ${i}: PRESERVED - "${item.name}" -> "${item.url}"`);
+        } else if (item.operation === 'replace') {
+          if (item.originalIndex !== undefined) {
+            console.log(`🔍 DEBUG: Index ${i}: REPLACED - "${item.name}" -> "${allCertificationDetails[item.originalIndex]?.url}"`);
+          } else {
+            console.log(`🔍 DEBUG: Index ${i}: REPLACED - "${item.name}" -> "${allCertificationDetails[i]?.url}"`);
+          }
+        } else if (item.operation === 'append') {
+          console.log(`🔍 DEBUG: Index ${i}: APPENDED - "${item.name}" -> "${allCertificationDetails[allCertificationDetails.length - 1]?.url}"`);
+        } else if (item.operation === 'remove') {
+          console.log(`🔍 DEBUG: Index ${i}: REMOVED - "${item.name}" - no certification`);
+        } else {
+          console.log(`🔍 DEBUG: Index ${i}: EMPTY SLOT - no file or certification`);
+        }
+      }
+      
+      console.log('🔍 DEBUG: === END CERTIFICATION MAPPING VERIFICATION ===');
+      
+      console.log('🔍 DEBUG: Final allCertificationDetails after replacement:', allCertificationDetails);
       console.log('🔍 DEBUG: File management summary:', this.getCertificationFilesSummary());
       console.log('🔍 DEBUG: Files breakdown:', this.getCertificationFilesBreakdown());
       
@@ -1300,7 +1689,7 @@ export class CompanyProfileComponent implements OnInit {
         customer_segments: this.updateCustomerSegmentsArray.value.filter((item: string) => item && item.trim() !== ''),
         competitive_position: this.updateForm.get('competitive_position')?.value || '',
         partnerships: this.updatePartnershipsArray.value.filter((item: string) => item && item.trim() !== ''),
-        certifications: allCertificationUrls, // Use merged certification URLs
+        certifications: allCertificationDetails, // Use merged certification details
         sales_channels: this.updateSalesChannelsArray.value.filter((item: string) => item && item.trim() !== '')
       };
 
@@ -1386,8 +1775,10 @@ export class CompanyProfileComponent implements OnInit {
           console.log('🔍 DEBUG: What backend processed:', response.profile_data.certifications);
           
           // Check if file replacement was successful
-          const sentUrls = new Set(profileData.certifications);
-          const processedUrls = new Set(response.profile_data.certifications);
+          const sentUrls = new Set(profileData.certifications.map(cert => cert.url));
+          const processedUrls = new Set(response.profile_data.certifications.map((cert: any) => 
+            typeof cert === 'string' ? cert : cert.url
+          ));
           const newUrls = [...sentUrls].filter(url => !this.updateExistingCertificationUrls.includes(url));
           const oldUrls = this.updateExistingCertificationUrls.filter(url => !sentUrls.has(url));
           
@@ -1499,54 +1890,56 @@ export class CompanyProfileComponent implements OnInit {
       });
     }
     
-    if (profile.certifications && profile.certifications.length > 0) {
-      profile.certifications.forEach(cert => {
-        console.log('🔍 DEBUG: Processing certification:', cert);
-        
-        // Extract filename from URL more robustly
-        let fileName = '';
-        if (typeof cert === 'string') {
-          if (cert.includes('/')) {
-            // It's a URL, extract the filename
-            const urlParts = cert.split('/');
-            fileName = urlParts[urlParts.length - 1];
-            // Remove any query parameters
-            if (fileName.includes('?')) {
-              fileName = fileName.split('?')[0];
-            }
-            // Remove any hash fragments
-            if (fileName.includes('#')) {
-              fileName = fileName.split('#')[0];
-            }
-          } else {
-            // It's already a filename
-            fileName = cert;
+          if (profile.certifications && profile.certifications.length > 0) {
+        profile.certifications.forEach((cert, index) => {
+          console.log('🔍 DEBUG: Processing certification:', cert);
+          
+          // Handle both old string format and new CertificationDetail format
+          let certUrl = '';
+          let certName = '';
+          
+          if (typeof cert === 'string') {
+            // Old format: just a URL string
+            certUrl = cert;
+            // Extract filename from URL
+            certName = this.extractFileNameFromUrl(cert);
+          } else if (cert && typeof cert === 'object' && 'url' in cert) {
+            // New format: CertificationDetail object
+            certUrl = cert.url;
+            certName = cert.certificationName || this.extractFileNameFromUrl(cert.url);
           }
-        } else {
-          // Fallback if cert is not a string
-          fileName = String(cert);
-        }
-        
-        console.log('🔍 DEBUG: Extracted filename:', fileName);
-        
-        // Add to form array
-        this.updateCertificationsArray.push(this.fb.control(fileName, Validators.required));
-        
-        // Add to our organized file management
-        this.updateCertificationItems.push({
-          id: cert,
-          name: fileName,
-          url: cert,
-          isExisting: true
+          
+          console.log('🔍 DEBUG: Extracted certification data:', {
+            url: certUrl,
+            name: certName
+          });
+          
+          // Add to form array - create a simplified FormGroup with only certificate name
+          const certificationGroup = this.fb.group({
+            certificationName: [certName, Validators.required],
+            fileName: [certName, Validators.required] // Store the uploaded file name
+          });
+          this.updateCertificationsArray.push(certificationGroup);
+          
+          // Add to our organized file management
+          this.updateCertificationItems.push({
+            id: certUrl,
+            name: certName,
+            url: certUrl,
+            isExisting: true,
+            operation: 'preserve',
+            originalIndex: index,
+            // Initialize simplified certification details
+            certificationName: certName
+          });
+          
+          // Store existing URL for reference
+          this.updateExistingCertificationUrls.push(certUrl);
         });
-        
-        // Store existing URL for reference
-        this.updateExistingCertificationUrls.push(cert);
-      });
-      console.log('🔍 DEBUG: Populated certifications array with', profile.certifications.length, 'existing files');
-      console.log('🔍 DEBUG: updateCertificationItems array length:', this.updateCertificationItems.length);
-      console.log('🔍 DEBUG: updateCertificationItems:', this.updateCertificationItems);
-    }
+        console.log('🔍 DEBUG: Populated certifications array with', profile.certifications.length, 'existing files');
+        console.log('🔍 DEBUG: updateCertificationItems array length:', this.updateCertificationItems.length);
+        console.log('🔍 DEBUG: updateCertificationItems:', this.updateCertificationItems);
+      }
     
     if (profile.sales_channels && profile.sales_channels.length > 0) {
       profile.sales_channels.forEach(channel => {
@@ -1949,29 +2342,26 @@ You can scan this QR code to verify the profile on any device.
 
   // Helper method to get certification files summary
   getCertificationFilesSummary(): string {
-    const totalItems = this.updateCertificationItems.length;
-    const existingFiles = this.updateCertificationItems.filter(item => item.isExisting).length;
-    const newFiles = this.updateCertificationItems.filter(item => item.file).length;
-    const emptySlots = this.updateCertificationItems.filter(item => !item.isExisting && !item.file).length;
+    const breakdown = this.getCertificationFilesBreakdown();
+    const parts = [];
     
-    if (totalItems === 0) {
-      return 'No certification files';
+    if (breakdown.existing.length > 0) {
+      parts.push(`${breakdown.existing.length} existing`);
     }
-    
-    let summary = '';
-    if (existingFiles > 0) {
-      summary += `${existingFiles} existing file(s)`;
+    if (breakdown.replaced.length > 0) {
+      parts.push(`${breakdown.replaced.length} replaced`);
     }
-    if (newFiles > 0) {
-      if (summary) summary += ' + ';
-      summary += `${newFiles} new file(s)`;
+    if (breakdown.appended.length > 0) {
+      parts.push(`${breakdown.appended.length} appended`);
     }
-    if (emptySlots > 0) {
-      if (summary) summary += ' + ';
-      summary += `${emptySlots} empty slot(s)`;
+    if (breakdown.removed.length > 0) {
+      parts.push(`${breakdown.removed.length} removed`);
+    }
+    if (breakdown.empty > 0) {
+      parts.push(`${breakdown.empty} empty`);
     }
     
-    return summary;
+    return parts.length > 0 ? parts.join(', ') : 'No files';
   }
 
   // Helper method to check if a certification item has a file
@@ -2003,20 +2393,28 @@ You can scan this QR code to verify the profile on any device.
   }
 
   // Helper method to get detailed certification files breakdown
-  getCertificationFilesBreakdown(): { existing: string[], new: string[], empty: number } {
+  getCertificationFilesBreakdown(): { existing: string[], replaced: string[], appended: string[], removed: string[], empty: number } {
     const existing = this.updateCertificationItems
-      .filter(item => item.isExisting)
+      .filter(item => item.operation === 'preserve')
       .map(item => item.name);
-    
-    const newFiles = this.updateCertificationItems
-      .filter(item => item.file)
+
+    const replaced = this.updateCertificationItems
+      .filter(item => item.operation === 'replace')
       .map(item => item.name);
-    
+
+    const appended = this.updateCertificationItems
+      .filter(item => item.operation === 'append')
+      .map(item => item.name);
+
+    const removed = this.updateCertificationItems
+      .filter(item => item.operation === 'remove')
+      .map(item => item.name);
+
     const emptySlots = this.updateCertificationItems
-      .filter(item => !item.isExisting && !item.file)
+      .filter(item => !item.operation || item.operation === 'preserve' && !item.file)
       .length;
-    
-    return { existing, new: newFiles, empty: emptySlots };
+
+    return { existing, replaced, appended, removed, empty: emptySlots };
   }
 
   // Helper method to check if there are any changes to save
@@ -2071,36 +2469,34 @@ You can scan this QR code to verify the profile on any device.
         // Extract filename from URL more robustly
         let fileName = '';
         if (typeof cert === 'string') {
-          if (cert.includes('/')) {
-            // It's a URL, extract the filename
-            const urlParts = cert.split('/');
-            fileName = urlParts[urlParts.length - 1];
-            // Remove any query parameters
-            if (fileName.includes('?')) {
-              fileName = fileName.split('?')[0];
-            }
-            // Remove any hash fragments
-            if (fileName.includes('#')) {
-              fileName = fileName.split('#')[0];
-            }
-          } else {
-            // It's already a filename
-            fileName = cert;
-          }
+                  fileName = this.extractFileNameFromUrl(cert);
         } else {
           // Fallback if cert is not a string
           fileName = String(cert);
         }
         
-        // Add to form array
-        certificationsArray.push(this.fb.control(fileName, Validators.required));
+        // Add to form array - create a FormGroup for certification details
+        const certificationGroup = this.fb.group({
+          certificationName: [fileName, Validators.required],
+          certificationType: ['', Validators.required],
+          issuingAuthority: ['', Validators.required],
+          issueDate: ['', Validators.required],
+          expiryDate: ['', Validators.required],
+          description: [''],
+          fileName: [fileName, Validators.required]
+        });
+        certificationsArray.push(certificationGroup);
         
         // Add to our organized file management
         this.updateCertificationItems.push({
-          id: cert,
+          id: typeof cert === 'string' ? cert : cert.url,
           name: fileName,
-          url: cert,
-          isExisting: true
+          url: typeof cert === 'string' ? cert : cert.url,
+          isExisting: true,
+          operation: 'preserve',
+          originalIndex: this.updateCertificationItems.length,
+          // Initialize simplified certification details
+          certificationName: fileName
         });
       });
     }
@@ -2150,36 +2546,31 @@ You can scan this QR code to verify the profile on any device.
       // Extract filename from URL more robustly
       let fileName = '';
       if (typeof cert === 'string') {
-        if (cert.includes('/')) {
-          // It's a URL, extract the filename
-          const urlParts = cert.split('/');
-          fileName = urlParts[urlParts.length - 1];
-          // Remove any query parameters
-          if (fileName.includes('?')) {
-            fileName = fileName.split('?')[0];
-          }
-          // Remove any hash fragments
-          if (fileName.includes('#')) {
-            fileName = fileName.split('#')[0];
-          }
-        } else {
-          // It's already a filename
-          fileName = cert;
-        }
+        fileName = this.extractFileNameFromUrl(cert);
+      } else if (cert && typeof cert === 'object' && 'url' in cert) {
+        fileName = cert.certificationName || this.extractFileNameFromUrl(cert.url);
       } else {
         // Fallback if cert is not a string
         fileName = String(cert);
       }
       
-      // Add to form array
-      certificationsArray.push(this.fb.control(fileName, Validators.required));
+      // Add to form array - create a simplified FormGroup with only certificate name
+      const certificationGroup = this.fb.group({
+        certificationName: [fileName, Validators.required],
+        fileName: [fileName, Validators.required]
+      });
+      certificationsArray.push(certificationGroup);
       
       // Add to our organized file management
       this.updateCertificationItems.push({
-        id: cert,
+        id: typeof cert === 'string' ? cert : cert.url,
         name: fileName,
-        url: cert,
-        isExisting: true
+        url: typeof cert === 'string' ? cert : cert.url,
+        isExisting: true,
+        operation: 'preserve',
+        originalIndex: this.updateCertificationItems.length,
+        // Initialize simplified certification details
+        certificationName: fileName
       });
     });
     
@@ -2202,10 +2593,13 @@ You can scan this QR code to verify the profile on any device.
     preview += `• Established: ${this.updateForm.get('established')?.value || 'No change'}\n`;
     preview += `• Revenue: ${this.updateForm.get('revenue')?.value || 'No change'}\n`;
     preview += `• Competitive Position: ${this.updateForm.get('competitive_position')?.value || 'No change'}\n`;
-    preview += `• Certifications: ${breakdown.existing.length} existing + ${breakdown.new.length} new files\n`;
+    preview += `• Certifications: ${breakdown.existing.length} existing + ${breakdown.replaced.length} replaced + ${breakdown.appended.length} appended files\n`;
     
-    if (breakdown.new.length > 0) {
-      preview += `• New files to upload: ${breakdown.new.join(', ')}\n`;
+    if (breakdown.replaced.length > 0) {
+      preview += `• Files to be replaced: ${breakdown.replaced.join(', ')}\n`;
+    }
+    if (breakdown.appended.length > 0) {
+      preview += `• New files to be appended: ${breakdown.appended.join(', ')}\n`;
     }
     
     return preview;
@@ -2266,6 +2660,52 @@ You can scan this QR code to verify the profile on any device.
   // Helper method to check if a certification item is being replaced
   isReplacingCertification(index: number): boolean {
     const item = this.updateCertificationItems[index];
-    return item ? (item.isExisting && !!item.file) : false;
+    return item ? (item.operation === 'replace') : false;
+  }
+
+  // Helper method to check if a certification item is being appended
+  isAppendingCertification(index: number): boolean {
+    const item = this.updateCertificationItems[index];
+    return item ? (item.operation === 'append') : false;
+  }
+
+  // Helper method to check if a certification item is being preserved
+  isPreservingCertification(index: number): boolean {
+    const item = this.updateCertificationItems[index];
+    return item ? (item.operation === 'preserve') : false;
+  }
+
+  // Helper method to check if a certification slot is empty
+  isEmptyCertificationSlot(index: number): boolean {
+    const item = this.updateCertificationItems[index];
+    return item ? (!item.operation || item.operation === undefined) : true;
+  }
+
+  // Debug method to show current certification items state
+  debugCertificationItemsState(): void {
+    console.log('🔍 DEBUG: === CERTIFICATION ITEMS STATE DEBUG ===');
+    console.log('🔍 DEBUG: Total items:', this.updateCertificationItems.length);
+    
+    this.updateCertificationItems.forEach((item, index) => {
+      console.log(`🔍 DEBUG: Item ${index}:`, {
+        id: item.id,
+        name: item.name,
+        url: item.url,
+        isExisting: item.isExisting,
+        hasFile: !!item.file,
+        fileInfo: item.file ? {
+          name: item.file.name,
+          size: item.file.size,
+          type: item.file.type
+        } : 'No file'
+      });
+    });
+    
+    // Also show the current profile certifications
+    if (this.currentProfile && this.currentProfile.certifications) {
+      console.log('🔍 DEBUG: Current profile certifications:', this.currentProfile.certifications);
+    }
+    
+    console.log('🔍 DEBUG: === END CERTIFICATION ITEMS STATE DEBUG ===');
   }
 } 

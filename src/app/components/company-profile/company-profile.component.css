@@ -76,6 +76,17 @@ body { font-family: sans-serif; background: #f8f9fa; color: #333; }
   color: white;
   border: 1px solid #e67e00;
 }
+.status-badge.removed {
+  background-color: #dc3545;
+  color: white;
+  border: 1px solid #c82333;
+}
+
+.status-badge.empty {
+  background-color: #6c757d;
+  color: white;
+  border: 1px solid #5a6268;
+}
 .file-info { display: flex; flex-direction: column; gap: 4px; margin-top: 8px; }
 .file-name { font-weight: 600; color: #333; }
 .file-size, .file-status { font-size: 0.875rem; color: #6c757d; }
@@ -892,6 +903,18 @@ body { font-family: sans-serif; background: #f8f9fa; color: #333; }
   font-style: italic;
 }
 
+.file-status.new {
+  color: #28a745;
+  font-weight: 600;
+  font-style: italic;
+}
+
+.file-status.empty {
+  color: #6c757d;
+  font-weight: 500;
+  font-style: italic;
+}
+
 .upload-info {
   margin-top: 8px;
   padding: 8px 12px;
@@ -904,6 +927,138 @@ body { font-family: sans-serif; background: #f8f9fa; color: #333; }
   color: #6c757d;
   font-size: 0.8rem;
   line-height: 1.4;
+}
+
+/* Certification Details Styles */
+.certification-details {
+  background: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  padding: 20px;
+  margin: 15px 0;
+  flex: 1;
+}
+
+.details-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 15px;
+  align-items: start;
+}
+
+.details-grid .form-group {
+  margin-bottom: 0;
+}
+
+.details-grid .full-width {
+  grid-column: 1 / -1;
+}
+
+.details-grid label {
+  font-weight: 600;
+  color: #495057;
+  margin-bottom: 8px;
+  display: block;
+}
+
+.details-grid .form-input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #ced4da;
+  border-radius: 6px;
+  font-size: 14px;
+  transition: border-color 0.3s ease;
+}
+
+.details-grid .form-input:focus {
+  border-color: #3498db;
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+}
+
+.details-grid textarea.form-input {
+  resize: vertical;
+  min-height: 60px;
+}
+
+/* Responsive Design for Simplified Certification Form */
+@media (max-width: 1200px) {
+  .certification-details {
+    padding: 16px;
+  }
+}
+
+@media (max-width: 768px) {
+  .certification-details {
+    padding: 15px;
+    margin: 10px 0;
+  }
+  
+  .array-item {
+    flex-direction: column;
+    gap: 15px;
+    align-items: stretch;
+  }
+  
+  .file-upload-container {
+    order: 1;
+  }
+  
+  .certification-details {
+    order: 2;
+  }
+  
+  .file-actions {
+    order: 3;
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+  }
+  
+  .file-status-indicator {
+    text-align: center;
+  }
+  
+  .status-badge {
+    font-size: 0.7rem;
+    padding: 3px 6px;
+  }
+}
+
+@media (max-width: 480px) {
+  .certification-details {
+    padding: 12px;
+  }
+  
+  .details-grid {
+    gap: 12px;
+  }
+  
+  .details-grid .form-input {
+    padding: 8px 10px;
+    font-size: 13px;
+  }
+  
+  .details-grid label {
+    font-size: 0.9rem;
+    margin-bottom: 6px;
+  }
+  
+  .file-upload-container {
+    margin-bottom: 10px;
+  }
+  
+  .file-info {
+    font-size: 0.8rem;
+  }
+  
+  .file-name {
+    font-size: 0.9rem;
+  }
+  
+  .file-size, .file-status {
+    font-size: 0.8rem;
+  }
 }
 
 /* Enhanced Array Inputs for File Uploads */
@@ -1045,6 +1200,500 @@ body { font-family: sans-serif; background: #f8f9fa; color: #333; }
   align-items: center;
 }
 
+/* ===== COMPREHENSIVE RESPONSIVE DESIGN ===== */
+
+/* Large Desktop (1200px and above) */
+@media (min-width: 1200px) {
+  .content-wrapper {
+    max-width: 1400px;
+  }
+  
+  .form-card {
+    padding: 40px;
+  }
+  
+  .details-grid {
+    grid-template-columns: 1fr;
+    max-width: 400px;
+  }
+}
+
+/* Medium Desktop (992px - 1199px) */
+@media (max-width: 1199px) {
+  .content-wrapper {
+    max-width: 100%;
+    padding: 0 20px;
+  }
+  
+  .form-card {
+    padding: 25px;
+  }
+  
+  .details-grid {
+    grid-template-columns: 1fr;
+    max-width: 400px;
+  }
+}
+
+/* Tablet Landscape (768px - 991px) */
+@media (max-width: 991px) {
+  .header-content {
+    padding: 0 15px;
+  }
+  
+  .tab-container {
+    padding: 0 15px;
+  }
+  
+  .tab-content {
+    padding: 15px;
+  }
+  
+  .form-section {
+    padding: 20px;
+  }
+  
+  .form-card {
+    padding: 20px;
+  }
+  
+  .header-section {
+    padding: 20px;
+  }
+  
+  .header-section h1 {
+    font-size: 1.8rem;
+  }
+  
+  .details-grid {
+    grid-template-columns: 1fr;
+    max-width: 100%;
+  }
+  
+  .array-item {
+    padding: 15px;
+  }
+  
+  .file-upload-container {
+    margin-bottom: 15px;
+  }
+}
+
+/* Tablet Portrait (576px - 767px) */
+@media (max-width: 767px) {
+  .header-content {
+    flex-direction: column;
+    gap: 15px;
+    text-align: center;
+  }
+  
+  .logo-section {
+    justify-content: center;
+  }
+  
+  .header-info {
+    justify-content: center;
+  }
+  
+  .tabs {
+    flex-wrap: wrap;
+  }
+  
+  .tab {
+    min-width: 120px;
+    padding: 12px 15px;
+  }
+  
+  .tab-content {
+    padding: 10px;
+  }
+  
+  .form-section {
+    padding: 15px;
+  }
+  
+  .form-card {
+    padding: 15px;
+  }
+  
+  .form-group {
+    margin-bottom: 20px;
+  }
+  
+  .form-input, .form-textarea {
+    padding: 10px 12px;
+    font-size: 16px; /* Prevents zoom on iOS */
+  }
+  
+  .btn {
+    padding: 10px 20px;
+    font-size: 0.9rem;
+    width: 100%;
+    justify-content: center;
+  }
+  
+  .form-actions {
+    margin-top: 20px;
+  }
+  
+  .array-inputs {
+    margin-top: 15px;
+  }
+  
+  .add-btn {
+    width: 100%;
+    padding: 12px;
+  }
+  
+  .file-management-actions {
+    flex-direction: column;
+    gap: 10px;
+  }
+  
+  .utility-btn {
+    width: 100%;
+    padding: 10px;
+    text-align: center;
+  }
+  
+  .certification-summary {
+    margin-bottom: 15px;
+    padding: 10px;
+  }
+  
+  .update-preview {
+    margin: 15px 0;
+    padding: 12px;
+  }
+}
+
+/* Mobile Large (480px - 575px) */
+@media (max-width: 575px) {
+  .header-section {
+    padding: 15px;
+  }
+  
+  .header-section h1 {
+    font-size: 1.5rem;
+  }
+  
+  .header-section p {
+    font-size: 0.9rem;
+  }
+  
+  .form-section {
+    padding: 10px;
+  }
+  
+  .form-card {
+    padding: 12px;
+    border-radius: 8px;
+  }
+  
+  .form-card h2 {
+    font-size: 1.3rem;
+    margin-bottom: 20px;
+  }
+  
+  .form-group label {
+    font-size: 0.9rem;
+    margin-bottom: 6px;
+  }
+  
+  .form-input, .form-textarea {
+    padding: 8px 10px;
+    font-size: 14px;
+    border-radius: 6px;
+  }
+  
+  .array-item {
+    padding: 12px;
+    gap: 10px;
+  }
+  
+  .file-upload-container {
+    margin-bottom: 12px;
+  }
+  
+  .file-status-indicator {
+    margin-bottom: 8px;
+  }
+  
+  .status-badge {
+    font-size: 0.65rem;
+    padding: 2px 5px;
+  }
+  
+  .file-info {
+    margin-top: 6px;
+  }
+  
+  .file-name {
+    font-size: 0.85rem;
+  }
+  
+  .file-size, .file-status {
+    font-size: 0.75rem;
+  }
+  
+  .remove-btn {
+    padding: 6px 10px;
+    font-size: 0.8rem;
+  }
+  
+  .add-btn {
+    padding: 10px;
+    font-size: 0.9rem;
+  }
+  
+  .upload-info {
+    font-size: 0.8rem;
+  }
+  
+  .certification-summary {
+    padding: 8px;
+    font-size: 0.8rem;
+  }
+  
+  .summary-text {
+    font-size: 0.8rem;
+  }
+}
+
+/* Mobile Small (320px - 479px) */
+@media (max-width: 479px) {
+  .header-content {
+    padding: 0 10px;
+  }
+  
+  .tab-container {
+    padding: 0 10px;
+  }
+  
+  .tab-content {
+    padding: 8px;
+  }
+  
+  .form-section {
+    padding: 8px;
+  }
+  
+  .form-card {
+    padding: 10px;
+  }
+  
+  .form-card h2 {
+    font-size: 1.2rem;
+    margin-bottom: 15px;
+  }
+  
+  .form-group {
+    margin-bottom: 15px;
+  }
+  
+  .form-group label {
+    font-size: 0.85rem;
+  }
+  
+  .form-input, .form-textarea {
+    padding: 6px 8px;
+    font-size: 13px;
+  }
+  
+  .array-item {
+    padding: 10px;
+    gap: 8px;
+  }
+  
+  .file-upload-container {
+    margin-bottom: 10px;
+  }
+  
+  .file-status-indicator {
+    margin-bottom: 6px;
+  }
+  
+  .status-badge {
+    font-size: 0.6rem;
+    padding: 1px 4px;
+  }
+  
+  .file-info {
+    margin-top: 5px;
+  }
+  
+  .file-name {
+    font-size: 0.8rem;
+  }
+  
+  .file-size, .file-status {
+    font-size: 0.7rem;
+  }
+  
+  .remove-btn {
+    padding: 5px 8px;
+    font-size: 0.75rem;
+  }
+  
+  .add-btn {
+    padding: 8px;
+    font-size: 0.85rem;
+  }
+  
+  .upload-info {
+    font-size: 0.75rem;
+  }
+  
+  .certification-summary {
+    padding: 6px;
+    font-size: 0.75rem;
+  }
+  
+  .summary-text {
+    font-size: 0.75rem;
+  }
+  
+  .btn {
+    padding: 8px 16px;
+    font-size: 0.85rem;
+  }
+}
+
+/* Landscape Orientation Adjustments */
+@media (max-height: 500px) and (orientation: landscape) {
+  .header-section {
+    padding: 15px;
+  }
+  
+  .header-section h1 {
+    font-size: 1.5rem;
+    margin-bottom: 5px;
+  }
+  
+  .form-section {
+    padding: 15px;
+  }
+  
+  .form-card {
+    padding: 20px;
+  }
+  
+  .form-group {
+    margin-bottom: 15px;
+  }
+  
+  .details-grid {
+    gap: 12px;
+  }
+}
+
+/* High DPI Displays */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+  .form-input, .form-textarea {
+    border-width: 1px;
+  }
+  
+  .status-badge {
+    border-width: 1px;
+  }
+}
+
+/* Print Styles */
+@media print {
+  .app-header,
+  .tab-navigation,
+  .form-actions,
+  .file-management-actions {
+    display: none;
+  }
+  
+  .form-card {
+    box-shadow: none;
+    border: 1px solid #ccc;
+  }
+  
+  .certification-details {
+    break-inside: avoid;
+  }
+}
+
+/* Additional Mobile Optimizations */
+@media (max-width: 767px) {
+  /* Prevent horizontal scrolling */
+  .form-card {
+    overflow-x: hidden;
+  }
+  
+  /* Better touch targets */
+  .form-input, .form-textarea {
+    min-height: 44px; /* iOS minimum touch target */
+  }
+  
+  /* Improve file input on mobile */
+  .file-input {
+    font-size: 16px; /* Prevents zoom on iOS */
+  }
+  
+  /* Better spacing for mobile */
+  .array-item {
+    margin-bottom: 20px;
+  }
+  
+  /* Stack form elements vertically on mobile */
+  .form-group {
+    margin-bottom: 20px;
+  }
+  
+  /* Improve button spacing */
+  .btn, .add-btn, .remove-btn {
+    margin: 5px 0;
+  }
+}
+
+/* Landscape phone optimizations */
+@media (max-width: 767px) and (orientation: landscape) {
+  .header-section {
+    padding: 15px;
+  }
+  
+  .form-section {
+    padding: 15px;
+  }
+  
+  .form-card {
+    padding: 15px;
+  }
+  
+  .details-grid {
+    gap: 15px;
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .form-input, .form-textarea {
+    border-width: 2px;
+  }
+  
+  .status-badge {
+    border-width: 2px;
+  }
+  
+  .btn {
+    border-width: 2px;
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .form-input:focus,
+  .form-textarea:focus,
+  .btn:hover,
+  .status-badge {
+    transition: none;
+  }
+}
+
 .pdf-viewer-header h3 {
   margin: 0;
   color: #333;
@@ -1096,5 +1745,71 @@ body { font-family: sans-serif; background: #f8f9fa; color: #333; }
 
   .pdf-viewer-content iframe {
     height: 400px;
+  }
+} 
+
+.file-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.restore-btn {
+  background-color: #17a2b8;
+  color: white;
+  border: 1px solid #138496;
+  border-radius: 4px;
+  padding: 4px 8px;
+  cursor: pointer;
+  font-size: 12px;
+  transition: background-color 0.2s;
+}
+
+.restore-btn:hover {
+  background-color: #138496;
+}
+
+.remove-btn {
+  background-color: #dc3545;
+  color: white;
+  border: 1px solid #c82333;
+  border-radius: 4px;
+  padding: 4px 8px;
+  cursor: pointer;
+  font-size: 12px;
+  transition: background-color 0.2s;
+}
+
+.remove-btn:hover {
+  background-color: #c82333;
+}
+
+/* Responsive file actions */
+@media (max-width: 768px) {
+  .file-actions {
+    justify-content: center;
+    margin-top: 15px;
+  }
+  
+  .restore-btn,
+  .remove-btn {
+    padding: 8px 12px;
+    font-size: 0.9rem;
+    min-width: 44px; /* Touch-friendly minimum size */
+  }
+}
+
+@media (max-width: 480px) {
+  .file-actions {
+    flex-direction: column;
+    gap: 10px;
+    width: 100%;
+  }
+  
+  .restore-btn,
+  .remove-btn {
+    width: 100%;
+    padding: 10px;
+    font-size: 0.85rem;
   }
 } 
