@@ -416,10 +416,6 @@
             <div class="profile-metadata" *ngIf="latestProfileData">
               <div class="metadata-grid">
                 <div class="metadata-item">
-                  <label>File ID</label>
-                  <span>{{ latestProfileData.metadata.file_id }}</span>
-                </div>
-                <div class="metadata-item">
                   <label>Version</label>
                   <span>{{ latestProfileData.metadata.version }}</span>
                 </div>
@@ -508,10 +504,6 @@
                   <div class="certification-info">
                     <span class="certification-name">{{ cert.split('/').pop() || cert }}</span>
                     <div class="certification-actions">
-                      <button class="btn btn-secondary btn-sm" (click)="loadPdfForViewing(cert)" 
-                              *ngIf="supportsInlineViewing('application/pdf')">
-                        👁️ View
-                      </button>
                       <button class="btn btn-primary btn-sm" (click)="downloadFile(cert, cert.split('/').pop() || 'document')">
                         📥 Download
                       </button>
@@ -522,18 +514,7 @@
               <p *ngIf="currentProfile.certifications.length === 0" class="no-data">No certifications specified</p>
             </div>
 
-            <!-- PDF Viewer Section -->
-            <div class="pdf-viewer-section" *ngIf="pdfUrl">
-              <div class="pdf-viewer-card">
-                <div class="pdf-viewer-header">
-                  <h3>📄 Document Viewer</h3>
-                  <button class="close-btn" (click)="clearPdfViewer()">❌ Close</button>
-                </div>
-                <div class="pdf-viewer-content">
-                  <iframe *ngIf="pdfUrl" [src]="pdfUrl" style="width:100%;height:600px;border:0"></iframe>
-                </div>
-              </div>
-            </div>
+
 
             <div class="profile-section">
               <h3>�� Sales Channels</h3>
@@ -572,24 +553,6 @@
                 <strong>URL:</strong> 
                 <span class="url-text">{{ qrCodeUrl }}</span>
                 <button class="copy-btn" (click)="copyToClipboard(qrCodeUrl, 'Verification URL')">📋 Copy</button>
-              </div>
-              
-              <div class="detail-item">
-                <strong>DID:</strong> 
-                <span class="did-text">did:hedera:{{ latestProfileData?.metadata?.file_id }}</span>
-                <button class="copy-btn" (click)="copyToClipboard('did:hedera:' + latestProfileData?.metadata?.file_id, 'DID')">📋 Copy</button>
-              </div>
-              
-              <div class="detail-item">
-                <strong>File ID:</strong> 
-                <span class="file-id-text">{{ latestProfileData?.metadata?.file_id }}</span>
-                <button class="copy-btn" (click)="copyToClipboard(latestProfileData?.metadata?.file_id || '', 'File ID')">📋 Copy</button>
-              </div>
-              
-              <div class="detail-item">
-                <strong>Public Key:</strong> 
-                <span class="public-key-text">{{ latestProfileData?.metadata?.public_key }}</span>
-                <button class="copy-btn" (click)="copyToClipboard(latestProfileData?.metadata?.public_key || '', 'Public Key')">📋 Copy</button>
               </div>
             </div>
             
@@ -842,18 +805,44 @@
               <!-- Certifications -->
               <div class="form-group">
                 <label>Certifications</label>
+                <div class="certification-summary" *ngIf="updateCertificationItems.length > 0">
+                  <small class="summary-text">
+                    📊 {{ getCertificationFilesSummary() }}
+                  </small>
+                </div>
                 <div formArrayName="certifications" class="array-inputs">
                   <div *ngFor="let cert of updateCertificationsArray.controls; let i = index" class="array-item">
                     <div class="file-upload-container">
+                      <div class="file-status-indicator">
+                        <span class="status-badge existing" *ngIf="isExistingCertification(i) && !isReplacingCertification(i)">EXISTING</span>
+                        <span class="status-badge replacing" *ngIf="isReplacingCertification(i)">REPLACING</span>
+                        <span class="status-badge new" *ngIf="!isExistingCertification(i) && updateCertificationItems[i]?.file">NEW</span>
+                      </div>
                       <input type="file" (change)="onUpdateFileSelect($event, i)" class="form-input file-input" accept=".pdf,.csv,.png,.jpg,.jpeg,.docx">
-                      <div class="file-info" *ngIf="updateCertificationFiles[i]">
-                        <span class="file-name">{{ updateCertificationFiles[i].name }}</span>
-                        <span class="file-size">({{ (updateCertificationFiles[i].size / 1024 / 1024).toFixed(2) }} MB)</span>
+                      <div class="file-info" *ngIf="hasCertificationFile(i)">
+                        <span class="file-name">{{ getCertificationFileName(i) }}</span>
+                        <span class="file-size" *ngIf="!isExistingCertification(i) && updateCertificationItems[i]?.file">({{ getFileSizeInMB(i) }} MB)</span>
+                        <span class="file-status" *ngIf="isExistingCertification(i) && !isReplacingCertification(i)">(existing file)</span>
+                        <span class="file-status replacing" *ngIf="isReplacingCertification(i)">(replacing existing file)</span>
                       </div>
                     </div>
                     <button type="button" class="remove-btn" (click)="removeUpdateCertificationItem(i)">❌</button>
                   </div>
                   <button type="button" class="add-btn" (click)="addUpdateCertificationItem()">➕ Add Certification</button>
+                </div>
+                <div class="file-management-actions" *ngIf="updateCertificationItems.length > 0">
+                  <button type="button" class="utility-btn" (click)="cleanupEmptyCertificationSlots()" title="Remove empty file slots">
+                    🧹 Clean Empty Slots
+                  </button>
+                  <button type="button" class="utility-btn" (click)="resetCertificationFiles()" title="Reset to original files">
+                    🔄 Reset Files
+                  </button>
+                  <button type="button" class="utility-btn" (click)="debugCertificationFiles()" title="Debug file state">
+                    🐛 Debug Files
+                  </button>
+                  <button type="button" class="utility-btn" (click)="checkBackendFileStorage()" title="Check backend file storage">
+                    🔍 Check Backend Files
+                  </button>
                 </div>
                 <div class="upload-info">
                   <small>Supported formats: PDF, CSV, PNG, JPG, JPEG, DOCX (Max 25MB per file)</small>
@@ -876,11 +865,21 @@
 
 
 
+              <!-- Update Preview -->
+              <div class="update-preview" *ngIf="hasCertificationChanges()">
+                <div class="preview-header">
+                  <h4>📋 Update Preview</h4>
+                </div>
+                <div class="preview-content">
+                  <pre>{{ showUpdatePreview() }}</pre>
+                </div>
+              </div>
+
               <!-- Submit Button -->
               <div class="form-actions">
                 <button type="submit" class="btn btn-primary" [disabled]="updateForm.invalid || updateProfileLoading">
                   <span *ngIf="!updateProfileLoading">💾 Update Profile</span>
-                  <span *ngIf="updateProfileLoading"></span>
+                  <span *ngIf="updateProfileLoading">⏳ Updating...</span>
                 </button>
               </div>
             </form>
@@ -996,10 +995,6 @@
                         <div class="certification-info">
                           <span class="certification-name">{{ cert.split('/').pop() || cert }}</span>
                           <div class="certification-actions">
-                            <button class="btn btn-secondary btn-sm" (click)="loadPdfForViewing(cert)" 
-                                    *ngIf="supportsInlineViewing('application/pdf')">
-                              👁️ View
-                            </button>
                             <button class="btn btn-primary btn-sm" (click)="downloadFile(cert, cert.split('/').pop() || 'document')">
                               📥 Download
                             </button>
@@ -1178,10 +1173,6 @@
                             <div class="certification-info">
                               <span class="certification-name">{{ cert.split('/').pop() || cert }}</span>
                               <div class="certification-actions">
-                                <button class="btn btn-secondary btn-sm" (click)="loadPdfForViewing(cert)" 
-                                        *ngIf="supportsInlineViewing('application/pdf')">
-                                  👁️ View
-                                </button>
                                 <button class="btn btn-primary btn-sm" (click)="downloadFile(cert, cert.split('/').pop() || 'document')">
                                   📥 Download
                                 </button>
@@ -1202,18 +1193,7 @@
           </div>
         </div>
 
-        <!-- PDF Viewer Section for Regulatory Profile -->
-        <div class="pdf-viewer-section" *ngIf="pdfUrl">
-          <div class="pdf-viewer-card">
-            <div class="pdf-viewer-header">
-              <h3>📄 Document Viewer</h3>
-              <button class="close-btn" (click)="clearPdfViewer()">❌ Close</button>
-            </div>
-            <div class="pdf-viewer-content">
-              <iframe *ngIf="pdfUrl" [src]="pdfUrl" style="width:100%;height:600px;border:0"></iframe>
-            </div>
-          </div>
-        </div>
+
       </div>
     </div>
 

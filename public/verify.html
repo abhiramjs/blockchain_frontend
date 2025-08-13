@@ -409,9 +409,7 @@
 
       <section class="metadata">
         <h4>📋 Profile Metadata</h4>
-        <p><strong>File ID:</strong> <span id="file-id"></span></p>
         <p><strong>Version:</strong> <span id="version"></span></p>
-        <p><strong>Public Key:</strong> <span id="public-key"></span></p>
         <p><strong>Profile Hash:</strong> <span id="profile-hash"></span></p>
         <p><strong>Created:</strong> <span id="created-at"></span></p>
         <p><strong>Updated:</strong> <span id="updated-at"></span></p>
@@ -422,18 +420,7 @@
         <div id="profile-fields"></div>
       </section>
 
-      <!-- PDF Viewer Section - Enhanced to match Angular component -->
-      <div id="pdf-viewer-section" class="pdf-viewer-section">
-        <div class="pdf-viewer-card">
-          <div class="pdf-viewer-header">
-            <h3>📄 Document Viewer</h3>
-            <button class="close-btn" onclick="clearPdfViewer()">❌ Close</button>
-          </div>
-          <div class="pdf-viewer-content">
-            <iframe id="pdf-iframe" style="width:100%;height:600px;border:0"></iframe>
-          </div>
-        </div>
-      </div>
+
     </div>
   </div>
 
@@ -447,8 +434,6 @@
     const errorMessageText = document.getElementById("error-message-text");
     const profileContent = document.getElementById("profile-content");
     const verificationDiv = document.getElementById("verification");
-    const pdfViewerSection = document.getElementById("pdf-viewer-section");
-    const pdfIframe = document.getElementById("pdf-iframe");
     const successMessage = document.getElementById("success-message");
     const errorMessage = document.getElementById("error-message");
 
@@ -516,9 +501,7 @@
     }
 
     function renderMetadata(meta) {
-      document.getElementById("file-id").textContent = meta.file_id;
       document.getElementById("version").textContent = meta.version;
-      document.getElementById("public-key").textContent = meta.public_key;
       document.getElementById("profile-hash").textContent = meta.profile_hash;
       document.getElementById("created-at").textContent = new Date(meta.created_at).toLocaleString();
       document.getElementById("updated-at").textContent = new Date(meta.updated_at).toLocaleString();
@@ -593,10 +576,6 @@
           <div class="certification-info">
             <span class="certification-name">${fileName}</span>
             <div class="certification-actions">
-              <button class="btn btn-secondary btn-sm" onclick="loadPdfForViewing('${cert}')" 
-                      ${supportsInlineViewing('application/pdf') ? '' : 'style="display:none;"'}>
-                👁️ View
-              </button>
               <button class="btn btn-primary btn-sm" onclick="downloadFile('${cert}', '${fileName}')">
                 📥 Download
               </button>
@@ -647,41 +626,7 @@
       return documentIdOrUrl;
     }
 
-    // Enhanced function to check if file type supports inline viewing
-    function supportsInlineViewing(mimeType) {
-      return mimeType.startsWith('application/pdf') || 
-             mimeType.startsWith('image/');
-    }
 
-    // Enhanced load PDF for inline viewing - matches Angular component exactly
-    async function loadPdfForViewing(documentIdOrUrl) {
-      try {
-        console.log('🔍 loadPdfForViewing called with:', documentIdOrUrl);
-        
-        const documentId = extractDocumentId(documentIdOrUrl);
-        console.log('🎯 Final documentId:', documentId);
-        
-        const url = `${API_BASE_URL}/documents/${documentId}/file`;
-        console.log('🌐 Requesting URL:', url);
-
-        const response = await fetch(url);
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-        }
-
-        const blob = await response.blob();
-        const objectUrl = URL.createObjectURL(blob);
-        
-        pdfIframe.src = objectUrl;
-        pdfViewerSection.style.display = 'block';
-        
-        console.log('✅ PDF loaded for inline viewing:', documentId);
-        showSuccess('PDF loaded for inline viewing');
-      } catch (error) {
-        console.error('❌ Error loading PDF for viewing:', error);
-        showError('Failed to load PDF for viewing: ' + error.message);
-      }
-    }
 
     // Enhanced download file function - matches Angular component exactly
     async function downloadFile(documentIdOrUrl, fileName) {
@@ -718,15 +663,7 @@
       }
     }
 
-    // Enhanced clear PDF viewer function - matches Angular component exactly
-    function clearPdfViewer() {
-      if (pdfIframe.src) {
-        URL.revokeObjectURL(pdfIframe.src);
-        pdfIframe.src = '';
-      }
-      pdfViewerSection.style.display = 'none';
-      console.log('✅ PDF viewer cleared');
-    }
+
 
     loadProfile();
   </script>
