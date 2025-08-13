@@ -412,7 +412,7 @@ export class CompanyProfileComponent implements OnInit {
     certificationsArray.push(newCertificationGroup);
     
     // Add to our organized file management
-    const newFileId = `new_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    const newFileId = `new_slot_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     const newItem = {
       id: newFileId,
       name: '',
@@ -661,6 +661,9 @@ export class CompanyProfileComponent implements OnInit {
         certificationItem.url = '';
         certificationItem.isExisting = false; // Mark as new file
         
+        // Generate a unique ID for the new file to distinguish it from others
+        certificationItem.id = `new_file_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        
         // Log the AFTER state for new file
         console.log('🔍 DEBUG: AFTER new file addition - certificationItem at index', index, ':', {
           id: certificationItem.id,
@@ -705,21 +708,12 @@ export class CompanyProfileComponent implements OnInit {
     const uploadedUrls: string[] = [];
     console.log('🔍 DEBUG: Starting uploadUpdateCertificationFiles with', this.updateCertificationItems.length, 'items');
     
+    // 🔍 CRITICAL: Process files in the correct order for final array construction
+    // First, process all REPLACE operations
+    console.log('🔍 DEBUG: === PROCESSING REPLACEMENT FILES FIRST ===');
     for (let i = 0; i < this.updateCertificationItems.length; i++) {
       const item = this.updateCertificationItems[i];
-      console.log(`🔍 DEBUG: Processing item at index ${i}:`, {
-        id: item.id,
-        name: item.name,
-        url: item.url,
-        isExisting: item.isExisting,
-        hasFile: !!item.file,
-        operation: item.operation,
-        fileSize: item.file?.size,
-        fileType: item.file?.type
-      });
-      
       if (item.operation === 'replace' && item.file) {
-        // This is a file that's replacing an existing file
         try {
           console.log(`🔄 Uploading replacement file at index ${i}: ${item.name}`);
           console.log(`🔍 DEBUG: This file will replace existing URL: ${item.url}`);
@@ -732,8 +726,14 @@ export class CompanyProfileComponent implements OnInit {
           console.error(`❌ Error uploading replacement file at index ${i}: ${item.name}`, error);
           throw new Error(`Failed to upload replacement file ${item.name}: ${error.message || error}`);
         }
-      } else if (item.operation === 'append' && item.file) {
-        // This is a new file being appended
+      }
+    }
+    
+    // Second, process all APPEND operations
+    console.log('🔍 DEBUG: === PROCESSING APPENDED FILES SECOND ===');
+    for (let i = 0; i < this.updateCertificationItems.length; i++) {
+      const item = this.updateCertificationItems[i];
+      if (item.operation === 'append' && item.file) {
         try {
           console.log(`➕ Uploading new appended file at index ${i}: ${item.name}`);
           
@@ -745,23 +745,28 @@ export class CompanyProfileComponent implements OnInit {
           console.error(`❌ Error uploading appended file at index ${i}: ${item.name}`, error);
           throw new Error(`Failed to upload appended file ${item.name}: ${error.message || error}`);
         }
-      } else if (item.operation === 'preserve' && item.url) {
-        // This is an existing file that should be preserved
+      }
+    }
+    
+    // Third, add all PRESERVE operations (existing URLs)
+    console.log('🔍 DEBUG: === ADDING PRESERVED FILES THIRD ===');
+    for (let i = 0; i < this.updateCertificationItems.length; i++) {
+      const item = this.updateCertificationItems[i];
+      if (item.operation === 'preserve' && item.url) {
         console.log(`ℹ️ Preserving existing file at index ${i}: ${item.name}`);
         console.log(`🔍 DEBUG: Pushed PRESERVED URL to uploadedUrls[${uploadedUrls.length}]: ${item.url}`);
         uploadedUrls.push(item.url);
-      } else if (item.operation === 'remove') {
-        // This file is marked for removal, skip it
-        console.log(`🗑️ Skipping removed file at index ${i}: ${item.name}`);
-        // Don't add anything to uploadedUrls for removed files
-      } else {
-        // This is an empty slot or invalid state, skip it
-        console.log(`ℹ️ Skipping empty/invalid slot at index ${i}: operation=${item.operation}, hasFile=${!!item.file}, url=${item.url}`);
       }
     }
+    
+    // Note: REMOVE operations are skipped (don't add anything to uploadedUrls)
 
     console.log('🔍 DEBUG: Final uploadedUrls array:', uploadedUrls);
     console.log('🔍 DEBUG: uploadedUrls length:', uploadedUrls.length);
+    console.log('🔍 DEBUG: === UPLOAD ORDER SUMMARY ===');
+    console.log('🔍 DEBUG: 1. Replacement files (first in uploadedUrls)');
+    console.log('🔍 DEBUG: 2. Appended files (second in uploadedUrls)');
+    console.log('🔍 DEBUG: 3. Preserved files (last in uploadedUrls)');
     return uploadedUrls;
   }
 
@@ -1547,102 +1552,100 @@ export class CompanyProfileComponent implements OnInit {
 
       // Build the final certification details array by processing each item in updateCertificationItems
       const allCertificationDetails: CertificationDetail[] = [];
-      let newUrlIndex = 0;
+      let replacementUrlIndex = 0;
+      let appendUrlIndex = 0;
       
       console.log('🔍 DEBUG: === STARTING URL CONSTRUCTION ===');
       console.log('🔍 DEBUG: Current profile certifications:', this.currentProfile?.certifications);
       console.log('🔍 DEBUG: New certification URLs:', newCertificationUrls);
       console.log('🔍 DEBUG: updateCertificationItems:', this.updateCertificationItems);
       
-      // First, create a map of original positions to track replacements
-      const originalPositions = new Map<string, number>();
+      // 🔍 CRITICAL: Build the final array in the correct order
+      // First, handle preserved certifications (existing files that weren't changed)
+      const preservedCertifications: CertificationDetail[] = [];
       this.updateCertificationItems.forEach((item, index) => {
-        if (item.isExisting && item.operation === 'preserve') {
-          originalPositions.set(item.id, index);
+        if (item.operation === 'preserve' && item.url) {
+          const certificationFormGroup = this.updateCertificationsArray.at(index) as FormGroup;
+          const formData = certificationFormGroup ? certificationFormGroup.value : null;
+          
+          preservedCertifications.push({
+            url: item.url,
+            certificationName: formData?.certificationName || item.certificationName || item.name
+          });
+          console.log(`🔍 DEBUG: PRESERVED: "${item.name}" -> "${item.url}"`);
         }
       });
       
-      // Process each item in updateCertificationItems to build the final certification details array
-      for (let i = 0; i < this.updateCertificationItems.length; i++) {
-        const item = this.updateCertificationItems[i];
-        console.log(`🔍 DEBUG: Processing item ${i}:`, item);
-        
-        // Get the form data for this certification
-        const certificationFormGroup = this.updateCertificationsArray.at(i) as FormGroup;
-        const formData = certificationFormGroup ? certificationFormGroup.value : null;
-        
-        if (item.operation === 'replace') {
-          // REPLACE: This item is replacing an existing file
-          if (newUrlIndex < newCertificationUrls.length) {
-            const newUrl = newCertificationUrls[newUrlIndex];
-            console.log(`🔍 DEBUG: REPLACE at index ${i}: "${item.name}" replaces "${item.url}" -> "${newUrl}"`);
-            
-            // Create simplified certification detail with new URL but existing details
-            const certificationDetail: CertificationDetail = {
-              url: newUrl,
-              certificationName: formData?.certificationName || item.certificationName || item.name
-            };
-            
-            // For replacement, place at the original position
-            if (item.originalIndex !== undefined) {
-              allCertificationDetails[item.originalIndex] = certificationDetail;
-              console.log(`🔍 DEBUG: Placed replacement at original position ${item.originalIndex}`);
-            } else {
-              // Fallback: place at current position
-              allCertificationDetails[i] = certificationDetail;
-              console.log(`🔍 DEBUG: Placed replacement at current position ${i}`);
-            }
-            newUrlIndex++;
-          } else {
-            console.error('❌ ERROR: No more new URLs available for replacement at index', i);
-          }
-        } else if (item.operation === 'append') {
-          // APPEND: This item is a new file being added
-          if (newUrlIndex < newCertificationUrls.length) {
-            const newUrl = newCertificationUrls[newUrlIndex];
-            console.log(`🔍 DEBUG: APPEND at index ${i}: "${item.name}" -> "${newUrl}"`);
-            
-            // Create simplified certification detail with new URL and form data
-            const certificationDetail: CertificationDetail = {
-              url: newUrl,
-              certificationName: formData?.certificationName || item.certificationName || item.name
-            };
-            
-            // For appending, push to the end
-            allCertificationDetails.push(certificationDetail);
-            console.log(`🔍 DEBUG: Appended new certification to end of array`);
-            newUrlIndex++;
-          } else {
-            console.error('❌ ERROR: No more new URLs available for append at index', i);
-          }
-        } else if (item.operation === 'preserve') {
-          // PRESERVE: This item keeps its existing URL but may have updated details
-          console.log(`🔍 DEBUG: PRESERVE at index ${i}: "${item.name}" -> "${item.url}"`);
+      // Second, handle replacement certifications (existing files that were replaced)
+      const replacementCertifications: CertificationDetail[] = [];
+      this.updateCertificationItems.forEach((item, index) => {
+        if (item.operation === 'replace' && item.file && replacementUrlIndex < newCertificationUrls.length) {
+          const newUrl = newCertificationUrls[replacementUrlIndex];
+          const certificationFormGroup = this.updateCertificationsArray.at(index) as FormGroup;
+          const formData = certificationFormGroup ? certificationFormGroup.value : null;
           
-          // Create simplified certification detail with existing URL but potentially updated form data
-          const certificationDetail: CertificationDetail = {
-            url: item.url,
+          replacementCertifications.push({
+            url: newUrl,
             certificationName: formData?.certificationName || item.certificationName || item.name
-          };
-          
-          // For existing files, place them at their original position
-          if (item.originalIndex !== undefined) {
-            allCertificationDetails[item.originalIndex] = certificationDetail;
-            console.log(`🔍 DEBUG: Preserved existing certification at original position ${item.originalIndex}`);
-          } else {
-            // Fallback: place at current position
-            allCertificationDetails[i] = certificationDetail;
-            console.log(`🔍 DEBUG: Preserved existing certification at current position ${i}`);
-          }
-        } else if (item.operation === 'remove') {
-          // REMOVE: This item should be removed
-          console.log(`🔍 DEBUG: REMOVE at index ${i}: "${item.name}" - skipping`);
-          // Don't add anything to the array for removed items
-        } else {
-          // EMPTY: This is an empty slot, no certification needed
-          console.log(`🔍 DEBUG: SKIP empty slot at index ${i}`);
+          });
+          console.log(`🔍 DEBUG: REPLACED: "${item.name}" -> "${newUrl}" (using replacementUrlIndex: ${replacementUrlIndex})`);
+          replacementUrlIndex++;
         }
-      }
+      });
+      
+      // Third, handle appended certifications (new files being added)
+      const appendedCertifications: CertificationDetail[] = [];
+      this.updateCertificationItems.forEach((item, index) => {
+        if (item.operation === 'append' && item.file && appendUrlIndex < newCertificationUrls.length) {
+          const newUrl = newCertificationUrls[appendUrlIndex];
+          const certificationFormGroup = this.updateCertificationsArray.at(index) as FormGroup;
+          const formData = certificationFormGroup ? certificationFormGroup.value : null;
+          
+          appendedCertifications.push({
+            url: newUrl,
+            certificationName: formData?.certificationName || item.certificationName || item.name
+          });
+          console.log(`🔍 DEBUG: APPENDED: "${item.name}" -> "${newUrl}" (using appendUrlIndex: ${appendUrlIndex})`);
+          appendUrlIndex++;
+        }
+      });
+      
+      // 🔍 CRITICAL: Combine all certifications in the correct order
+      // 1. Preserved certifications (keep their original order)
+      // 2. Replacement certifications (keep their original order)  
+      // 3. Appended certifications (add to the end)
+      allCertificationDetails.push(...preservedCertifications);
+      allCertificationDetails.push(...replacementCertifications);
+      allCertificationDetails.push(...appendedCertifications);
+      
+      console.log('🔍 DEBUG: === FINAL ARRAY CONSTRUCTION ===');
+      console.log('🔍 DEBUG: Preserved certifications:', preservedCertifications.length);
+      console.log('🔍 DEBUG: Replacement certifications:', replacementCertifications.length);
+      console.log('🔍 DEBUG: Appended certifications:', appendedCertifications.length);
+      console.log('🔍 DEBUG: Total certifications:', allCertificationDetails.length);
+      console.log('🔍 DEBUG: replacementUrlIndex used:', replacementUrlIndex);
+      console.log('🔍 DEBUG: appendUrlIndex used:', appendUrlIndex);
+      
+      // 🔍 CRITICAL: Show the exact URL mapping
+      console.log('🔍 DEBUG: === URL MAPPING VERIFICATION ===');
+      console.log('🔍 DEBUG: newCertificationUrls array:', newCertificationUrls);
+      console.log('🔍 DEBUG: Replacement URLs used (indices 0 to', replacementUrlIndex - 1, '):', newCertificationUrls.slice(0, replacementUrlIndex));
+      console.log('🔍 DEBUG: Append URLs used (indices', replacementUrlIndex, 'to', replacementUrlIndex + appendUrlIndex - 1, '):', newCertificationUrls.slice(replacementUrlIndex, replacementUrlIndex + appendUrlIndex));
+      console.log('🔍 DEBUG: === END URL MAPPING VERIFICATION ===');
+      
+      // Use the combined array directly (no need for cleaning since we're building it properly)
+      const cleanedCertificationDetails = allCertificationDetails;
+      
+      console.log('🔍 DEBUG: Cleaned certification details array:', cleanedCertificationDetails);
+      console.log('🔍 DEBUG: Cleaned array length:', cleanedCertificationDetails.length);
+      
+      // 🔍 CRITICAL: Final verification of the complete array
+      console.log('🔍 DEBUG: === FINAL COMPLETE ARRAY VERIFICATION ===');
+      console.log('🔍 DEBUG: Complete final array:');
+      cleanedCertificationDetails.forEach((cert, index) => {
+        console.log(`🔍 DEBUG:   [${index}]: "${cert.certificationName}" -> "${cert.url}"`);
+      });
+      console.log('🔍 DEBUG: === END FINAL COMPLETE ARRAY VERIFICATION ===');
       
       // 🔍 CRITICAL: Verify the final certification mapping
       console.log('🔍 DEBUG: === CERTIFICATION MAPPING VERIFICATION ===');
@@ -1671,7 +1674,16 @@ export class CompanyProfileComponent implements OnInit {
       
       console.log('🔍 DEBUG: === END CERTIFICATION MAPPING VERIFICATION ===');
       
+      // 🔍 CRITICAL: Verify the cleaned array mapping
+      console.log('🔍 DEBUG: === CLEANED ARRAY MAPPING VERIFICATION ===');
+      console.log('🔍 DEBUG: Cleaned array verification:');
+      cleanedCertificationDetails.forEach((cert, index) => {
+        console.log(`🔍 DEBUG: Cleaned[${index}]: "${cert.certificationName}" -> "${cert.url}"`);
+      });
+      console.log('🔍 DEBUG: === END CLEANED ARRAY MAPPING VERIFICATION ===');
+      
       console.log('🔍 DEBUG: Final allCertificationDetails after replacement:', allCertificationDetails);
+      console.log('🔍 DEBUG: Final cleanedCertificationDetails:', cleanedCertificationDetails);
       console.log('🔍 DEBUG: File management summary:', this.getCertificationFilesSummary());
       console.log('🔍 DEBUG: Files breakdown:', this.getCertificationFilesBreakdown());
       
@@ -1689,7 +1701,7 @@ export class CompanyProfileComponent implements OnInit {
         customer_segments: this.updateCustomerSegmentsArray.value.filter((item: string) => item && item.trim() !== ''),
         competitive_position: this.updateForm.get('competitive_position')?.value || '',
         partnerships: this.updatePartnershipsArray.value.filter((item: string) => item && item.trim() !== ''),
-        certifications: allCertificationDetails, // Use merged certification details
+        certifications: cleanedCertificationDetails, // Use cleaned certification details
         sales_channels: this.updateSalesChannelsArray.value.filter((item: string) => item && item.trim() !== '')
       };
 
@@ -1734,9 +1746,9 @@ export class CompanyProfileComponent implements OnInit {
       console.log('🔍 DEBUG: === FINAL API PAYLOAD ANALYSIS ===');
       console.log('🔍 DEBUG: certifications array being sent to API:', profileData.certifications);
       console.log('🔍 DEBUG: certifications array length:', profileData.certifications.length);
-      console.log('🔍 DEBUG: Each certification URL in the payload:');
-      profileData.certifications.forEach((url, index) => {
-        console.log(`🔍 DEBUG:   [${index}]: ${url}`);
+      console.log('🔍 DEBUG: Each certification detail in the payload:');
+      profileData.certifications.forEach((cert, index) => {
+        console.log(`🔍 DEBUG:   [${index}]: ${cert.certificationName} -> ${cert.url}`);
       });
       console.log('🔍 DEBUG: === END API PAYLOAD ANALYSIS ===');
       
