@@ -972,14 +972,6 @@
           <div class="current-profile-section">
             <div class="profile-header-with-actions">
               <h2>📊 Current Profile Data</h2>
-              <div class="profile-actions">
-                <button class="btn btn-primary" (click)="showProfileComparisonForRegulatory()">
-                  🔄 Show Profile Comparison
-                </button>
-                <button class="btn btn-secondary" (click)="testBackendEndpoint()">
-                  🧪 Test Backend
-                </button>
-              </div>
             </div>
             <div class="profile-card">
               <div class="profile-header">
@@ -1189,24 +1181,52 @@
                           <span class="field-value">{{ version.change_info?.old_values?.location || 'N/A' }}</span>
                         </div>
                         <div class="field-row">
-                          <span class="field-name">Contact:</span>
+                          <span class="field-name">Contact Information:</span>
                           <span class="field-value">{{ version.change_info?.old_values?.contact || 'N/A' }}</span>
                         </div>
                         <div class="field-row">
-                          <span class="field-name">Size:</span>
+                          <span class="field-name">Company Size:</span>
                           <span class="field-value">{{ version.change_info?.old_values?.size || 'N/A' }}</span>
                         </div>
                         <div class="field-row">
-                          <span class="field-name">Established:</span>
+                          <span class="field-name">Year Established:</span>
                           <span class="field-value">{{ version.change_info?.old_values?.established || 'N/A' }}</span>
                         </div>
                         <div class="field-row">
-                          <span class="field-name">Revenue:</span>
+                          <span class="field-name">Revenue Range:</span>
                           <span class="field-value">{{ version.change_info?.old_values?.revenue || 'N/A' }}</span>
+                        </div>
+                        <div class="field-row">
+                          <span class="field-name">Market Segments:</span>
+                          <span class="field-value">{{ isArray(version.change_info?.old_values?.market_segments) ? version.change_info.old_values.market_segments.join(', ') : 'N/A' }}</span>
+                        </div>
+                        <div class="field-row">
+                          <span class="field-name">Technology Focus:</span>
+                          <span class="field-value">{{ isArray(version.change_info?.old_values?.technology_focus) ? version.change_info.old_values.technology_focus.join(', ') : 'N/A' }}</span>
+                        </div>
+                        <div class="field-row">
+                          <span class="field-name">Key Markets:</span>
+                          <span class="field-value">{{ isArray(version.change_info?.old_values?.key_markets) ? version.change_info.old_values.key_markets.join(', ') : 'N/A' }}</span>
+                        </div>
+                        <div class="field-row">
+                          <span class="field-name">Customer Segments:</span>
+                          <span class="field-value">{{ isArray(version.change_info?.old_values?.customer_segments) ? version.change_info.old_values.customer_segments.join(', ') : 'N/A' }}</span>
                         </div>
                         <div class="field-row">
                           <span class="field-name">Competitive Position:</span>
                           <span class="field-value">{{ version.change_info?.old_values?.competitive_position || 'N/A' }}</span>
+                        </div>
+                        <div class="field-row">
+                          <span class="field-name">Partnerships:</span>
+                          <span class="field-value">{{ isArray(version.change_info?.old_values?.partnerships) ? version.change_info.old_values.partnerships.join(', ') : 'N/A' }}</span>
+                        </div>
+                        <div class="field-row">
+                          <span class="field-name">Certifications:</span>
+                          <span class="field-value">{{ isArray(version.change_info?.old_values?.certifications) ? version.change_info.old_values.certifications.length + ' certification(s)' : 'N/A' }}</span>
+                        </div>
+                        <div class="field-row">
+                          <span class="field-name">Sales Channels:</span>
+                          <span class="field-value">{{ isArray(version.change_info?.old_values?.sales_channels) ? version.change_info.old_values.sales_channels.join(', ') : 'N/A' }}</span>
                         </div>
                       </div>
                     </div>
@@ -1222,24 +1242,52 @@
                           <span class="field-value">{{ version.change_info?.new_values?.location || 'N/A' }}</span>
                         </div>
                         <div class="field-row">
-                          <span class="field-name">Contact:</span>
+                          <span class="field-name">Contact Information:</span>
                           <span class="field-value">{{ version.change_info?.new_values?.contact || 'N/A' }}</span>
                         </div>
                         <div class="field-row">
-                          <span class="field-name">Size:</span>
+                          <span class="field-name">Company Size:</span>
                           <span class="field-value">{{ version.change_info?.new_values?.size || 'N/A' }}</span>
                         </div>
                         <div class="field-row">
-                          <span class="field-name">Established:</span>
+                          <span class="field-name">Year Established:</span>
                           <span class="field-value">{{ version.change_info?.new_values?.established || 'N/A' }}</span>
                         </div>
                         <div class="field-row">
-                          <span class="field-name">Revenue:</span>
+                          <span class="field-name">Revenue Range:</span>
                           <span class="field-value">{{ version.change_info?.new_values?.revenue || 'N/A' }}</span>
+                        </div>
+                        <div class="field-row">
+                          <span class="field-name">Market Segments:</span>
+                          <span class="field-value">{{ isArray(version.change_info?.new_values?.market_segments) ? version.change_info.new_values.market_segments.join(', ') : 'N/A' }}</span>
+                        </div>
+                        <div class="field-row">
+                          <span class="field-name">Technology Focus:</span>
+                          <span class="field-value">{{ isArray(version.change_info?.new_values?.technology_focus) ? version.change_info.new_values.technology_focus.join(', ') : 'N/A' }}</span>
+                        </div>
+                        <div class="field-row">
+                          <span class="field-name">Key Markets:</span>
+                          <span class="field-value">{{ isArray(version.change_info?.new_values?.key_markets) ? version.change_info.new_values.key_markets.join(', ') : 'N/A' }}</span>
+                        </div>
+                        <div class="field-row">
+                          <span class="field-name">Customer Segments:</span>
+                          <span class="field-value">{{ isArray(version.change_info?.new_values?.customer_segments) ? version.change_info.new_values.customer_segments.join(', ') : 'N/A' }}</span>
                         </div>
                         <div class="field-row">
                           <span class="field-name">Competitive Position:</span>
                           <span class="field-value">{{ version.change_info?.new_values?.competitive_position || 'N/A' }}</span>
+                        </div>
+                        <div class="field-row">
+                          <span class="field-name">Partnerships:</span>
+                          <span class="field-value">{{ isArray(version.change_info?.new_values?.partnerships) ? version.change_info.new_values.partnerships.join(', ') : 'N/A' }}</span>
+                        </div>
+                        <div class="field-row">
+                          <span class="field-name">Certifications:</span>
+                          <span class="field-value">{{ isArray(version.change_info?.new_values?.certifications) ? version.change_info.new_values.certifications.length + ' certification(s)' : 'N/A' }}</span>
+                        </div>
+                        <div class="field-row">
+                          <span class="field-name">Sales Channels:</span>
+                          <span class="field-value">{{ isArray(version.change_info?.new_values?.sales_channels) ? version.change_info.new_values.sales_channels.join(', ') : 'N/A' }}</span>
                         </div>
                       </div>
                     </div>

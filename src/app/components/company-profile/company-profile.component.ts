@@ -2503,6 +2503,11 @@ export class CompanyProfileComponent implements OnInit {
     console.log('Profile comparison requested for regulatory compliance');
   }
 
+  // Helper method to check if a value is an array
+  isArray(value: any): boolean {
+    return Array.isArray(value);
+  }
+
   // Create empty profile data for initial version comparison
   createEmptyProfileData(): any {
     return {
