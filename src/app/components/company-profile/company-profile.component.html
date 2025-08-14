@@ -1150,17 +1150,7 @@
                 </div>
 
                 <!-- Debug: Show change_info structure -->
-                <div class="debug-change-info" style="background: #fff3cd; padding: 10px; margin: 10px 0; border-radius: 5px; font-size: 12px;">
-                  <h5>🐛 Change Info Debug for Version {{ version.version }}</h5>
-                  <p><strong>Has change_info:</strong> {{ !!version.change_info }}</p>
-                  <p><strong>Changed fields count:</strong> {{ version.change_info?.changed_fields?.length || 0 }}</p>
-                  <p><strong>Changed fields:</strong> {{ version.change_info?.changed_fields | json }}</p>
-                  <p><strong>Has old_values:</strong> {{ !!version.change_info?.old_values }}</p>
-                  <p><strong>Has new_values:</strong> {{ !!version.change_info?.new_values }}</p>
-                  <p><strong>Old values keys:</strong> {{ getObjectKeys(version.change_info?.old_values) | json }}</p>
-                  <p><strong>New values keys:</strong> {{ getObjectKeys(version.change_info?.new_values) | json }}</p>
-                  <button (click)="debugChangeInfo(version)" class="btn btn-sm btn-secondary">🔍 Debug This Version</button>
-                </div>
+                
 
                 <!-- Simple Comparison (if change_info is available) -->
                 <div *ngIf="version.change_info"
