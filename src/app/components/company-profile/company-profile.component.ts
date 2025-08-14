@@ -942,31 +942,82 @@ export class CompanyProfileComponent implements OnInit {
 
   // Helper method to get certification display name
   getCertificationDisplayName(cert: any): string {
-    if (typeof cert === 'string') {
-      // Old format: just a URL string
-      return this.extractFileNameFromUrl(cert);
-    } else if (cert && typeof cert === 'object' && 'certificationName' in cert) {
-      // New format: CertificationDetail object
-      return cert.certificationName || this.extractFileNameFromUrl(cert.url);
+    try {
+      // Comprehensive null/undefined check
+      if (!cert || cert === null || cert === undefined) {
+        return 'Unknown Certification';
+      }
+      
+      // Handle string format (old format: just a URL string)
+      if (typeof cert === 'string') {
+        if (cert.trim() !== '') {
+          return this.extractFileNameFromUrl(cert);
+        }
+        return 'Unknown Certification';
+      }
+      
+      // Handle object format (new format: CertificationDetail object)
+      if (cert && typeof cert === 'object' && cert !== null) {
+        // Check for certificationName first
+        if (cert.certificationName !== undefined && cert.certificationName !== null) {
+          const name = String(cert.certificationName);
+          return name.trim() !== '' ? name : 'Unknown Certification';
+        }
+        
+        // Check for url as fallback
+        if (cert.url !== undefined && cert.url !== null) {
+          const url = String(cert.url);
+          if (url.trim() !== '') {
+            return this.extractFileNameFromUrl(url);
+          }
+        }
+      }
+      
+      // Default fallback
+      return 'Unknown Certification';
+    } catch (error) {
+      console.warn('⚠️ Error getting certification display name:', cert, error);
+      return 'Unknown Certification';
     }
-    return 'Unknown Certification';
   }
 
   // Helper method to get certification URL
   getCertificationUrl(cert: any): string {
-    if (typeof cert === 'string') {
-      // Old format: just a URL string
-      return cert;
-    } else if (cert && typeof cert === 'object' && 'url' in cert) {
-      // New format: CertificationDetail object
-      return cert.url;
+    try {
+      // Comprehensive null/undefined check
+      if (!cert || cert === null || cert === undefined) {
+        return '';
+      }
+      
+      // Handle string format (old format: just a URL string)
+      if (typeof cert === 'string') {
+        return cert.trim() !== '' ? cert : '';
+      }
+      
+      // Handle object format (new format: CertificationDetail object)
+      if (cert && typeof cert === 'object' && cert !== null) {
+        if (cert.url !== undefined && cert.url !== null) {
+          const url = String(cert.url);
+          return url.trim() !== '' ? url : '';
+        }
+      }
+      
+      return '';
+    } catch (error) {
+      console.warn('⚠️ Error getting certification URL:', cert, error);
+      return '';
     }
-    return '';
   }
 
   // Helper method to extract filename from URL
-  private extractFileNameFromUrl(url: string): string {
+  private extractFileNameFromUrl(url: any): string {
+    // Ensure url is a valid string before processing
     if (!url) return 'Unknown File';
+    if (typeof url !== 'string') {
+      console.warn('⚠️ extractFileNameFromUrl called with non-string:', typeof url, url);
+      return 'Unknown File';
+    }
+    if (url.trim() === '') return 'Unknown File';
     
     try {
       const urlParts = url.split('/');
@@ -1188,8 +1239,26 @@ export class CompanyProfileComponent implements OnInit {
         ).toPromise();
 
         console.log('📡 History response:', historyResponse);
+        console.log('📡 History response type:', typeof historyResponse);
+        console.log('📡 History response keys:', Object.keys(historyResponse || {}));
 
         if (historyResponse) {
+          console.log('📡 Raw history response:', JSON.stringify(historyResponse, null, 2));
+          console.log('📡 Edit history length:', historyResponse.edit_history?.length || 0);
+          console.log('📡 Profile data:', historyResponse.profile_data);
+          console.log('📡 Metadata:', historyResponse.metadata);
+          
+          // Check if the response has the expected structure
+          if (!historyResponse.profile_data) {
+            console.error('❌ No profile_data in history response');
+            throw new Error('Invalid history response: missing profile_data');
+          }
+          
+          if (!historyResponse.metadata) {
+            console.error('❌ No metadata in history response');
+            throw new Error('Invalid history response: missing metadata');
+          }
+          
           // Create history array from the edit history
           const historyArray: Array<{
             version: number;
@@ -1205,38 +1274,95 @@ export class CompanyProfileComponent implements OnInit {
             };
           }> = [];
 
-          // Process edit history entries - now these contain actual before/after data
-          historyResponse.edit_history.forEach((entry, index) => {
-            // Since backend now returns newest first, version 1 is the latest
-            const version = index + 1;
-            console.log(`📊 Processing version ${version}:`, {
-              changed_fields: entry.changed_fields,
-              old_values: entry.old_values,
-              new_values: entry.new_values
-            });
+          // Process edit history entries - these contain the changes between versions
+          if (historyResponse.edit_history && historyResponse.edit_history.length > 0) {
+            console.log('📊 Processing edit history entries...');
+            console.log('📊 Edit history structure:', JSON.stringify(historyResponse.edit_history[0], null, 2));
+            console.log('📊 Edit history length:', historyResponse.edit_history.length);
             
+            // The edit_history contains the changes between versions
+            // We need to create a proper version history from this
+            const initialProfileData = historyResponse.profile_data;
+            const emptyProfileData = this.createEmptyProfileData();
+            const allFields = Object.keys(initialProfileData);
+            
+            // Add the initial version (before any changes)
             historyArray.push({
-              version: version,
-              profile_data: entry.new_values, // Use new_values as the profile data for this version
-              timestamp: entry.changed_at,
+              version: 1,
+              profile_data: emptyProfileData, // Start with empty data
+              timestamp: historyResponse.metadata.timestamp,
               profile_hash: historyResponse.metadata.profile_hash,
               public_key: historyResponse.metadata.public_key,
               signature: historyResponse.metadata.signature,
               change_info: {
-                changed_fields: entry.changed_fields,
-                old_values: entry.old_values,
-                new_values: entry.new_values
+                changed_fields: allFields, // All fields are considered "added" in initial version
+                old_values: emptyProfileData,
+                new_values: initialProfileData
               }
             });
-          });
-
-          // Add the initial version if no edit history exists
-          if (historyArray.length === 0) {
+            
+            // Now add each change as a new version
+            historyResponse.edit_history.forEach((entry, index) => {
+              const version = index + 2; // Start from version 2
+              console.log(`📊 Processing change for version ${version}:`, {
+                changed_fields: entry.changed_fields,
+                old_values: entry.old_values,
+                new_values: entry.new_values,
+                changed_at: entry.changed_at
+              });
+              
+              // Debug the actual structure of the entry
+              console.log(`📊 Entry ${index} structure:`, {
+                hasChangedFields: !!entry.changed_fields,
+                changedFieldsType: typeof entry.changed_fields,
+                changedFieldsLength: Array.isArray(entry.changed_fields) ? entry.changed_fields.length : 'Not array',
+                hasOldValues: !!entry.old_values,
+                oldValuesType: typeof entry.old_values,
+                hasNewValues: !!entry.new_values,
+                newValuesType: typeof entry.new_values,
+                hasChangedAt: !!entry.changed_at
+              });
+              
+              // Ensure all required fields exist and are valid
+              if (!entry.changed_fields || !Array.isArray(entry.changed_fields)) {
+                console.warn(`⚠️ Skipping entry ${index} - invalid changed_fields:`, entry.changed_fields);
+                return;
+              }
+              
+              if (!entry.old_values || !entry.new_values) {
+                console.warn(`⚠️ Skipping entry ${index} - missing old_values or new_values:`, {
+                  old_values: entry.old_values,
+                  new_values: entry.new_values
+                });
+                return;
+              }
+              
+              const historyEntry = {
+                version: version,
+                profile_data: entry.new_values, // This version has the new values
+                timestamp: entry.changed_at || historyResponse.metadata.timestamp,
+                profile_hash: historyResponse.metadata.profile_hash,
+                public_key: historyResponse.metadata.public_key,
+                signature: historyResponse.metadata.signature,
+                change_info: {
+                  changed_fields: entry.changed_fields,
+                  old_values: entry.old_values,
+                  new_values: entry.new_values
+                }
+              };
+              
+              console.log(`📊 Created history entry for version ${version}:`, historyEntry);
+              historyArray.push(historyEntry);
+            });
+          } else {
+            console.log('⚠️ No edit history found in response');
+            
             // Create initial version with change_info showing "empty" to "current" state
             const initialProfileData = historyResponse.profile_data;
             const emptyProfileData = this.createEmptyProfileData();
             const allFields = Object.keys(initialProfileData);
             
+            console.log('📊 Creating initial version since no edit history exists...');
             console.log('📊 Creating initial version with change_info:', {
               allFields,
               emptyProfileData,
@@ -1258,8 +1384,41 @@ export class CompanyProfileComponent implements OnInit {
             });
           }
 
+          // Note: When edit history exists, change_info is already populated from backend
+          // No need to recalculate differences as they're already provided
+          if (historyArray.length > 1) {
+            console.log('📊 Edit history already contains change information from backend');
+            console.log('📊 No need to recalculate differences');
+          }
+
           // Reverse the array so latest version appears at the top
           historyArray.reverse();
+          
+          console.log('📊 Final history array:', JSON.stringify(historyArray, null, 2));
+          console.log('📊 History array details:', historyArray.map(h => ({
+            version: h.version,
+            hasChangeInfo: !!h.change_info,
+            changedFields: h.change_info?.changed_fields?.length || 0,
+            hasOldValues: !!h.change_info?.old_values,
+            hasNewValues: !!h.change_info?.new_values,
+            timestamp: h.timestamp
+          })));
+          
+          // Additional debugging for each history item
+          historyArray.forEach((item, index) => {
+            console.log(`📊 History item ${index} (version ${item.version}):`, {
+              hasProfileData: !!item.profile_data,
+              profileDataKeys: item.profile_data ? Object.keys(item.profile_data) : [],
+              hasChangeInfo: !!item.change_info,
+              changeInfoDetails: item.change_info ? {
+                changedFields: item.change_info.changed_fields,
+                hasOldValues: !!item.change_info.old_values,
+                hasNewValues: !!item.change_info.new_values,
+                oldValuesKeys: item.change_info.old_values ? Object.keys(item.change_info.old_values) : [],
+                newValuesKeys: item.change_info.new_values ? Object.keys(item.change_info.new_values) : []
+              } : null
+            });
+          });
 
           this.regulatorProfileData = {
             current_profile: latestResponse.profile_data,
@@ -1268,7 +1427,33 @@ export class CompanyProfileComponent implements OnInit {
           
           console.log('✅ Regulator profile data loaded successfully');
           console.log('📊 Current profile:', this.regulatorProfileData.current_profile);
+          console.log('📊 Current profile certifications:', this.regulatorProfileData.current_profile.certifications);
           console.log('📊 History versions:', this.regulatorProfileData.history.length);
+          console.log('📊 History array details:', this.regulatorProfileData.history.map(h => ({
+            version: h.version,
+            hasChangeInfo: !!h.change_info,
+            changedFields: h.change_info?.changed_fields?.length || 0,
+            timestamp: h.timestamp
+          })));
+          
+          // Debug certification structure
+          if (this.regulatorProfileData.current_profile.certifications) {
+            console.log('🔍 Certification structure analysis:');
+            this.regulatorProfileData.current_profile.certifications.forEach((cert: any, index: number) => {
+              console.log(`  Cert ${index}:`, {
+                type: typeof cert,
+                value: cert,
+                hasUrl: cert && typeof cert === 'object' && 'url' in cert,
+                hasCertificationName: cert && typeof cert === 'object' && 'certificationName' in cert
+              });
+            });
+          }
+          
+          // Debug what the template should display
+          console.log('🔍 Template display debugging:');
+          console.log('🔍 History length check:', this.regulatorProfileData.history.length);
+          console.log('🔍 First history item:', this.regulatorProfileData.history[0]);
+          console.log('🔍 First history change_info:', this.regulatorProfileData.history[0]?.change_info);
           
           this.showSuccess('Regulator profile data loaded successfully');
         } else {
@@ -1279,21 +1464,30 @@ export class CompanyProfileComponent implements OnInit {
         this.regulatorProfileData = null;
         console.log('ℹ️ No profiles available for regulator view');
       }
-    } catch (error: any) {
-      console.error('❌ Error loading regulator profile data:', error);
-      
-      if (error.status === 404) {
-        console.log('ℹ️ No profiles available - this is normal for empty database');
-        this.regulatorProfileError = '';
-        this.regulatorProfileData = null;
-      } else if (error.status === 0) {
-        console.log('❌ Network error - backend not reachable');
-        this.regulatorProfileError = 'Cannot connect to backend server. Please check if the server is running.';
-      } else {
-        this.regulatorProfileError = 'Failed to load regulator profile data';
-        this.handleApiError(error, 'Failed to load regulator profile data');
-      }
-    } finally {
+            } catch (error: any) {
+          console.error('❌ Error loading regulator profile data:', error);
+          
+          // Use the global error handler
+          this.handleComponentError(error, 'loadRegulatorProfileData');
+          
+          if (error.status === 404) {
+            console.log('ℹ️ No profiles available - this is normal for empty database');
+            this.regulatorProfileError = '';
+            this.regulatorProfileData = null;
+          } else if (error.status === 0) {
+            console.log('❌ Network error - backend not reachable');
+            this.regulatorProfileError = 'Cannot connect to backend server. Please check if the server is running.';
+          } else {
+            this.regulatorProfileError = 'Failed to load regulator profile data';
+            this.handleApiError(error, 'Failed to load regulator profile data');
+          }
+          
+          // Set empty data to prevent template errors
+          this.regulatorProfileData = {
+            current_profile: {},
+            history: []
+          };
+        } finally {
       this.regulatorProfileLoading = false;
       this.cdr.detectChanges();
     }
@@ -2105,6 +2299,209 @@ export class CompanyProfileComponent implements OnInit {
 
   // Add helper method for template
   objectKeys = Object.keys;
+  
+  // Helper method to get object keys safely
+  getObjectKeys(obj: any): string[] {
+    if (obj && typeof obj === 'object') {
+      return Object.keys(obj);
+    }
+    return [];
+  }
+  
+  // Helper method to validate certification data
+  isValidCertification(cert: any): boolean {
+    try {
+      if (!cert || cert === null || cert === undefined) {
+        return false;
+      }
+      
+      // Check if it's a valid string (URL)
+      if (typeof cert === 'string') {
+        return cert.trim() !== '';
+      }
+      
+      // Check if it's a valid object with required properties
+      if (typeof cert === 'object' && cert !== null) {
+        // Must have either certificationName or url
+        return (cert.certificationName !== undefined && cert.certificationName !== null) ||
+               (cert.url !== undefined && cert.url !== null);
+      }
+      
+      return false;
+    } catch (error) {
+      console.warn('⚠️ Error validating certification:', cert, error);
+      return false;
+    }
+  }
+  
+  // TrackBy function for certifications to improve performance and prevent errors
+  trackByCertification(index: number, cert: any): any {
+    if (!cert) return index;
+    
+    if (typeof cert === 'string') {
+      return cert;
+    }
+    
+    if (cert && typeof cert === 'object') {
+      return cert.certificationName || cert.url || cert.id || index;
+    }
+    
+    return index;
+  }
+  
+  // Safe method to get profile values with proper validation
+  safeGetProfileValue(profile: any, fieldName: string): any {
+    if (!profile || !fieldName) {
+      return null;
+    }
+    
+    try {
+      const value = profile[fieldName];
+      
+      // Handle null/undefined values
+      if (value === null || value === undefined) {
+        return null;
+      }
+      
+      // Handle array values
+      if (Array.isArray(value)) {
+        // Filter out invalid items for certifications
+        if (fieldName === 'certifications') {
+          console.log(`🔍 Processing certifications field:`, {
+            totalItems: value.length,
+            items: value.map((item, index) => ({
+              index,
+              type: typeof item,
+              value: item,
+              isValid: this.isValidCertification(item)
+            }))
+          });
+          return value.filter(cert => this.isValidCertification(cert));
+        }
+        return value;
+      }
+      
+      // Handle other types
+      return value;
+    } catch (error) {
+      console.warn(`⚠️ Error accessing profile field ${fieldName}:`, error);
+      return null;
+    }
+  }
+  
+  // Safe method to check if profile has array content
+  safeHasArrayContent(profile: any, fieldName: string): boolean {
+    const value = this.safeGetProfileValue(profile, fieldName);
+    return Array.isArray(value) && value.length > 0;
+  }
+  
+  // Safe method to download certification files
+  safeDownloadCertification(cert: any): void {
+    try {
+      if (!this.isValidCertification(cert)) {
+        console.warn('⚠️ Cannot download invalid certification:', cert);
+        return;
+      }
+      
+      const url = this.getCertificationUrl(cert);
+      if (!url) {
+        console.warn('⚠️ No valid URL found for certification:', cert);
+        return;
+      }
+      
+      // Use the existing download method if available
+      if (typeof this.downloadFile === 'function') {
+        this.downloadFile(url, this.getCertificationDisplayName(cert));
+      } else {
+        // Fallback: open in new tab
+        window.open(url, '_blank');
+      }
+    } catch (error) {
+      console.error('❌ Error downloading certification:', cert, error);
+    }
+  }
+  
+  // Global error handler for the component
+  private handleComponentError(error: any, context: string): void {
+    console.error(`❌ Error in ${context}:`, error);
+    
+    // Log additional error details for debugging
+    if (error && typeof error === 'object') {
+      console.error('Error details:', {
+        name: error.name,
+        message: error.message,
+        stack: error.stack,
+        context: context
+      });
+    }
+  }
+  
+  // Debug method to log change_info structure
+  debugChangeInfo(version: any): void {
+    console.log(`🔍 Debugging version ${version.version}:`, {
+      hasChangeInfo: !!version.change_info,
+      changeInfoType: typeof version.change_info,
+      changeInfoKeys: version.change_info ? Object.keys(version.change_info) : [],
+      oldValues: version.change_info?.old_values,
+      newValues: version.change_info?.new_values,
+      changedFields: version.change_info?.changed_fields,
+      oldValuesType: typeof version.change_info?.old_values,
+      newValuesType: typeof version.change_info?.new_values,
+      oldValuesKeys: version.change_info?.old_values ? Object.keys(version.change_info.old_values) : [],
+      newValuesKeys: version.change_info?.new_values ? Object.keys(version.change_info.new_values) : []
+    });
+  }
+
+  // Certification status methods
+  isPreservingCertification(index: number): boolean {
+    // Check if this certification slot is being preserved (not changed)
+    return this.updateCertificationItems && this.updateCertificationItems[index] && 
+           this.updateCertificationItems[index].operation === 'preserve';
+  }
+
+  isReplacingCertification(index: number): boolean {
+    // Check if this certification slot is being replaced
+    return this.updateCertificationItems && this.updateCertificationItems[index] && 
+           this.updateCertificationItems[index].operation === 'replace';
+  }
+
+  isAppendingCertification(index: number): boolean {
+    // Check if this certification slot is being appended (new file)
+    return this.updateCertificationItems && this.updateCertificationItems[index] && 
+           this.updateCertificationItems[index].operation === 'append';
+  }
+
+  isEmptyCertificationSlot(index: number): boolean {
+    // Check if this certification slot is empty
+    return this.updateCertificationItems && this.updateCertificationItems[index] && 
+           this.updateCertificationItems[index].operation === 'remove';
+  }
+
+  // Debug methods
+  debugCertificationItemsState(): void {
+    console.log('🔍 Debugging certification items state:', {
+      updateCertificationItems: this.updateCertificationItems,
+      currentCertifications: this.regulatorProfileData?.current_profile?.certifications
+    });
+  }
+
+  checkBackendFileStorage(): void {
+    console.log('🔍 Checking backend file storage...');
+    // This method would typically make an API call to check backend storage
+    // For now, just log the current state
+    console.log('Current file storage state:', {
+      hasCurrentProfile: !!this.regulatorProfileData?.current_profile,
+      hasCertifications: !!this.regulatorProfileData?.current_profile?.certifications,
+      certificationCount: this.regulatorProfileData?.current_profile?.certifications?.length || 0
+    });
+  }
+
+  showProfileComparisonForRegulatory(): void {
+    console.log('🔍 Showing profile comparison for regulatory...');
+    // This method would typically show a modal or navigate to comparison view
+    // For now, just log the action
+    console.log('Profile comparison requested for regulatory compliance');
+  }
 
   // Create empty profile data for initial version comparison
   createEmptyProfileData(): any {
@@ -2617,107 +3014,77 @@ You can scan this QR code to verify the profile on any device.
     return preview;
   }
 
-  // Method to log the current state for debugging
-  logCurrentState() {
-    console.log('🔍 DEBUG: === CURRENT STATE LOG ===');
-    console.log('🔍 DEBUG: Current Profile:', this.currentProfile);
-    console.log('🔍 DEBUG: File ID:', this.fileId);
-    console.log('🔍 DEBUG: Public Key:', this.publicKey);
-    console.log('🔍 DEBUG: Private Key Validated:', this.privateKeyValidated);
-    console.log('🔍 DEBUG: Update Form Valid:', this.updateForm.valid);
-    console.log('🔍 DEBUG: Update Form Values:', this.updateForm.value);
-    console.log('🔍 DEBUG: Certification Items:', this.updateCertificationItems);
-    console.log('🔍 DEBUG: === END STATE LOG ===');
-  }
-
-  // Method to check backend file storage after profile update
-  async checkBackendFileStorage() {
-    console.log('🔍 DEBUG: === CHECKING BACKEND FILE STORAGE ===');
-    
+  // Calculate differences between two profile versions
+  calculateProfileDiff(oldData: any, newData: any): Array<{field_name: string, old_value: any, new_value: any}> {
     try {
-      // Check if we can access the documents endpoint to see what files exist
-      const healthResponse = await lastValueFrom(this.http.get(`${this.API_BASE_URL}/health`));
-      console.log('🔍 DEBUG: Backend health check:', healthResponse);
+      const diffs: Array<{field_name: string, old_value: any, new_value: any}> = [];
       
-      // Try to check if the old file URLs are still accessible
-      if (this.updateExistingCertificationUrls.length > 0) {
-        console.log('🔍 DEBUG: Checking accessibility of old file URLs:');
-        for (const oldUrl of this.updateExistingCertificationUrls) {
-          try {
-            // Try to access the old file URL
-            const oldFileResponse = await lastValueFrom(this.http.head(oldUrl));
-            console.log(`🔍 DEBUG: Old file URL ${oldUrl} is still accessible:`, oldFileResponse);
-          } catch (error) {
-            console.log(`🔍 DEBUG: Old file URL ${oldUrl} is no longer accessible (expected if replaced):`, error);
-          }
+      if (!oldData || !newData || typeof oldData !== 'object' || typeof newData !== 'object') {
+        return diffs;
+      }
+      
+      // Get all unique keys from both objects
+      const allKeys = new Set([...Object.keys(oldData), ...Object.keys(newData)]);
+      
+      for (const key of allKeys) {
+        const oldValue = oldData[key];
+        const newValue = newData[key];
+        
+        // Check if values are different
+        if (JSON.stringify(oldValue) !== JSON.stringify(newValue)) {
+          diffs.push({
+            field_name: key,
+            old_value: oldValue,
+            new_value: newValue
+          });
         }
       }
       
-      // Check if new file URLs are accessible
-      const newUrls = this.updateCertificationItems
-        .filter(item => item.file)
-        .map(item => item.name);
-      
-      if (newUrls.length > 0) {
-        console.log('🔍 DEBUG: New files that should be accessible:', newUrls);
-      }
-      
+      return diffs;
     } catch (error) {
-      console.log('🔍 DEBUG: Error checking backend file storage:', error);
+      console.warn('⚠️ Error calculating profile diff:', error);
+      return [];
     }
-    
-    console.log('🔍 DEBUG: === END BACKEND FILE STORAGE CHECK ===');
   }
 
-  // Helper method to check if a certification item is being replaced
-  isReplacingCertification(index: number): boolean {
-    const item = this.updateCertificationItems[index];
-    return item ? (item.operation === 'replace') : false;
-  }
+  // Test backend endpoint directly to see what data structure is returned
+  async testBackendEndpoint() {
+    try {
+      console.log('🧪 Testing backend endpoint directly...');
+      
+      // First, get the latest profile to get a file_id
+      const latestResponse = await this.http.get<SingleLatestProfileResponse>(
+        `${this.API_BASE_URL}/blockchain/latest-available`
+      ).toPromise();
 
-  // Helper method to check if a certification item is being appended
-  isAppendingCertification(index: number): boolean {
-    const item = this.updateCertificationItems[index];
-    return item ? (item.operation === 'append') : false;
-  }
+      if (latestResponse && latestResponse.success && latestResponse.metadata?.file_id) {
+        const fileId = latestResponse.metadata.file_id;
+        console.log('🧪 Using file ID:', fileId);
+        
+        // Test the profiles endpoint directly
+        const historyResponse = await this.http.get<any>(
+          `${this.API_BASE_URL}/blockchain/profiles/${fileId}`
+        ).toPromise();
 
-  // Helper method to check if a certification item is being preserved
-  isPreservingCertification(index: number): boolean {
-    const item = this.updateCertificationItems[index];
-    return item ? (item.operation === 'preserve') : false;
-  }
-
-  // Helper method to check if a certification slot is empty
-  isEmptyCertificationSlot(index: number): boolean {
-    const item = this.updateCertificationItems[index];
-    return item ? (!item.operation || item.operation === undefined) : true;
-  }
-
-  // Debug method to show current certification items state
-  debugCertificationItemsState(): void {
-    console.log('🔍 DEBUG: === CERTIFICATION ITEMS STATE DEBUG ===');
-    console.log('🔍 DEBUG: Total items:', this.updateCertificationItems.length);
-    
-    this.updateCertificationItems.forEach((item, index) => {
-      console.log(`🔍 DEBUG: Item ${index}:`, {
-        id: item.id,
-        name: item.name,
-        url: item.url,
-        isExisting: item.isExisting,
-        hasFile: !!item.file,
-        fileInfo: item.file ? {
-          name: item.file.name,
-          size: item.file.size,
-          type: item.file.type
-        } : 'No file'
-      });
-    });
-    
-    // Also show the current profile certifications
-    if (this.currentProfile && this.currentProfile.certifications) {
-      console.log('🔍 DEBUG: Current profile certifications:', this.currentProfile.certifications);
+        console.log('🧪 Raw backend response:', JSON.stringify(historyResponse, null, 2));
+        console.log('🧪 Response type:', typeof historyResponse);
+        console.log('🧪 Has edit_history:', !!historyResponse?.edit_history);
+        console.log('🧪 Edit history length:', historyResponse?.edit_history?.length || 0);
+        console.log('🧪 Has profile_data:', !!historyResponse?.profile_data);
+        console.log('🧪 Has metadata:', !!historyResponse?.metadata);
+        
+        if (historyResponse?.edit_history) {
+          console.log('🧪 First edit history entry:', historyResponse.edit_history[0]);
+        }
+        
+        return historyResponse;
+      } else {
+        console.log('🧪 No latest profile available for testing');
+        return null;
+      }
+    } catch (error) {
+      console.error('🧪 Error testing backend endpoint:', error);
+      return null;
     }
-    
-    console.log('🔍 DEBUG: === END CERTIFICATION ITEMS STATE DEBUG ===');
   }
 } 
