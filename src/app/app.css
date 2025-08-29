@@ -6,9 +6,9 @@
 }
 
 body {
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  background: #f8f9fa;
-  color: #333;
+  font-family: "Open Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
+  background: var(--background-gray);
+  color: var(--gray);
 }
 
 /* Basic Form Styles */
@@ -20,7 +20,8 @@ body {
   display: block;
   margin-bottom: 8px;
   font-weight: 600;
-  color: #333;
+  color: var(--dark-blue);
+  font-family: "Open Sans", sans-serif;
 }
 
 .form-group input,
@@ -28,33 +29,38 @@ body {
 .form-group select {
   width: 100%;
   padding: 12px 15px;
-  border: 2px solid #e0e0e0;
+  border: 2px solid var(--light-gray);
   border-radius: 8px;
   font-size: 16px;
+  font-family: "Open Sans", sans-serif;
   transition: border-color 0.3s ease;
+  background-color: var(--white);
 }
 
 .form-group input:focus,
 .form-group textarea:focus,
 .form-group select:focus {
   outline: none;
-  border-color: #667eea;
+  border-color: var(--primary-blue);
+  box-shadow: 0 0 0 3px rgba(65, 84, 241, 0.1);
 }
 
 /* Basic Button Styles */
 .btn {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
+  background: var(--primary-blue);
+  color: var(--white);
   border: none;
   padding: 12px 30px;
   border-radius: 8px;
   font-size: 1rem;
   font-weight: 600;
+  font-family: "Open Sans", sans-serif;
   cursor: pointer;
-  transition: transform 0.2s ease;
+  transition: all 0.3s ease;
 }
 
 .btn:hover {
+  background: var(--primary-blue-hover);
   transform: translateY(-2px);
 }
 
@@ -65,8 +71,8 @@ body {
 
 /* Loading Spinner */
 .spinner {
-  border: 4px solid #f3f3f3;
-  border-top: 4px solid #667eea;
+  border: 4px solid var(--light-gray);
+  border-top: 4px solid var(--primary-blue);
   border-radius: 50%;
   width: 40px;
   height: 40px;
@@ -87,9 +93,9 @@ body {
 }
 
 .result.success {
-  background: #d4edda;
-  border: 1px solid #c3e6cb;
-  color: #155724;
+  background: var(--light-green);
+  border: 1px solid var(--green);
+  color: var(--dark-green);
 }
 
 .result.error {

@@ -1,1 +1,222 @@
 /* You can add global styles to this file, and also import other style files */
+
+/* Import Google Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Open+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,300;1,400;1,500;1,600;1,700;1,800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Nunito:ital,wght@0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Michroma&display=swap');
+
+/* Import Icon Fonts */
+@import url('https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css');
+@import url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css');
+@import url('https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css');
+
+/* CSS Custom Properties for Color Palette */
+:root {
+  /* Primary Colors */
+  --primary-blue: #4154f1;
+  --primary-blue-hover: #717ff5;
+  --dark-blue: #012970;
+  --darker-blue: #013289;
+  
+  /* Accent Colors */
+  --green: #04AA6D;
+  --light-green: #A8D08D;
+  --dark-green: #008000;
+  
+  /* Neutral Colors */
+  --white: #fff;
+  --black: #000;
+  --gray: #444444;
+  --light-gray: #E7E6E6;
+  --background-gray: #f2f4f7;
+}
+
+/* Global Typography */
+body {
+  font-family: "Open Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
+  font-size: 16px;
+  line-height: 1.6;
+  color: var(--gray);
+  background-color: var(--background-gray);
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: "Nunito", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
+  font-weight: 700;
+  color: var(--dark-blue);
+  margin-bottom: 1rem;
+}
+
+h1 { font-size: 2.5rem; }
+h2 { font-size: 2rem; }
+h3 { font-size: 1.75rem; }
+h4 { font-size: 1.5rem; }
+h5 { font-size: 1.25rem; }
+h6 { font-size: 1rem; }
+
+/* Section Headers and Special Text */
+.section-header,
+.special-text {
+  font-family: 'Michroma', sans-serif;
+  color: var(--darker-blue);
+}
+
+/* Monospace Fonts */
+code, pre, .monospace {
+  font-family: SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+}
+
+/* Link Styles */
+a {
+  color: var(--primary-blue);
+  text-decoration: none;
+  transition: color 0.3s ease;
+}
+
+a:hover {
+  color: var(--primary-blue-hover);
+}
+
+/* Button Base Styles */
+.btn {
+  font-family: "Open Sans", sans-serif;
+  font-weight: 600;
+  border-radius: 8px;
+  padding: 12px 24px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-decoration: none;
+  display: inline-block;
+  text-align: center;
+}
+
+.btn-primary {
+  background-color: var(--primary-blue);
+  color: var(--white);
+}
+
+.btn-primary:hover {
+  background-color: var(--primary-blue-hover);
+  transform: translateY(-2px);
+}
+
+.btn-success {
+  background-color: var(--green);
+  color: var(--white);
+}
+
+.btn-success:hover {
+  background-color: var(--dark-green);
+  transform: translateY(-2px);
+}
+
+/* Form Styles */
+.form-group {
+  margin-bottom: 1.5rem;
+}
+
+.form-group label {
+  font-family: "Open Sans", sans-serif;
+  font-weight: 600;
+  color: var(--dark-blue);
+  margin-bottom: 0.5rem;
+  display: block;
+}
+
+.form-control {
+  font-family: "Open Sans", sans-serif;
+  width: 100%;
+  padding: 12px 16px;
+  border: 2px solid var(--light-gray);
+  border-radius: 8px;
+  font-size: 1rem;
+  transition: border-color 0.3s ease;
+  background-color: var(--white);
+}
+
+.form-control:focus {
+  outline: none;
+  border-color: var(--primary-blue);
+  box-shadow: 0 0 0 3px rgba(65, 84, 241, 0.1);
+}
+
+/* Utility Classes */
+.text-primary { color: var(--primary-blue); }
+.text-success { color: var(--green); }
+.text-dark { color: var(--dark-blue); }
+.text-gray { color: var(--gray); }
+
+.bg-primary { background-color: var(--primary-blue); }
+.bg-success { background-color: var(--green); }
+.bg-light { background-color: var(--background-gray); }
+.bg-white { background-color: var(--white); }
+
+/* Typography Utility Classes */
+.font-open-sans { font-family: "Open Sans", sans-serif; }
+.font-nunito { font-family: "Nunito", sans-serif; }
+.font-michroma { font-family: 'Michroma', sans-serif; }
+.font-monospace { font-family: SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
+
+/* Icon Examples */
+.icon-example {
+  font-size: 1.5rem;
+  margin: 0 0.5rem;
+}
+
+.bi { font-size: 1.2rem; }
+.fa { font-size: 1.2rem; }
+.ri { font-size: 1.2rem; }
+
+/* Card Styles */
+.card {
+  background: var(--white);
+  border-radius: 12px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  padding: 2rem;
+  margin-bottom: 1.5rem;
+}
+
+.card-header {
+  border-bottom: 2px solid var(--background-gray);
+  padding-bottom: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.card-title {
+  font-family: "Nunito", sans-serif;
+  color: var(--dark-blue);
+  margin: 0;
+}
+
+/* Alert Styles */
+.alert {
+  padding: 1rem 1.5rem;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+  font-family: "Open Sans", sans-serif;
+}
+
+.alert-success {
+  background-color: var(--light-green);
+  color: var(--dark-green);
+  border: 1px solid var(--green);
+}
+
+.alert-info {
+  background-color: #e3f2fd;
+  color: #1976d2;
+  border: 1px solid #bbdefb;
+}
+
+.alert-warning {
+  background-color: #fff3cd;
+  color: #856404;
+  border: 1px solid #ffeaa7;
+}
+
+.alert-danger {
+  background-color: #f8d7da;
+  color: #721c24;
+  border: 1px solid #f5c6cb;
+}
