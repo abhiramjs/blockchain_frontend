@@ -319,34 +319,6 @@
                   </div>
                 </div>
               </div>
-
-              <div class="info-item" *ngIf="createdProfileData.verification_url">
-                <label>Verification URL</label>
-                <div class="info-value">
-                  <a [href]="createdProfileData.verification_url" target="_blank" class="verification-link">
-                    🔗 View Profile
-                  </a>
-                </div>
-              </div>
-            </div>
-
-            <!-- QR Code Section -->
-            <div class="qr-section" *ngIf="createdProfileData.qr_code_data">
-              <h3>QR Code</h3>
-              <div class="qr-container">
-                <div class="qr-code-text">{{ createdProfileData.qr_code_data }}</div>
-                <p>Scan this QR code to view your profile</p>
-              </div>
-            </div>
-
-            <!-- Action Buttons -->
-            <div class="success-actions">
-              <button class="btn btn-secondary" (click)="closeCreateSuccess()">
-                ✨ Create Another Profile
-              </button>
-              <button class="btn btn-primary" (click)="setActiveTab('update')">
-                ✏️ Update Profile
-              </button>
             </div>
           </div>
         </div>
@@ -823,23 +795,7 @@
                   </div>
                   <button type="button" class="add-btn" (click)="addUpdateCertificationItem()">➕ Add Certification</button>
                 </div>
-                <div class="file-management-actions" *ngIf="updateCertificationItems.length > 0">
-                  <button type="button" class="utility-btn" (click)="cleanupEmptyCertificationSlots()" title="Remove empty file slots">
-                    🧹 Clean Empty Slots
-                  </button>
-                  <button type="button" class="utility-btn" (click)="resetCertificationFiles()" title="Reset to original files">
-                    🔄 Reset Files
-                  </button>
-                  <button type="button" class="utility-btn" (click)="debugCertificationFiles()" title="Debug file state">
-                    🐛 Debug Files
-                  </button>
-                  <button type="button" class="utility-btn" (click)="debugCertificationItemsState()" title="Debug certification items state">
-                    🔍 Debug Items State
-                  </button>
-                  <button type="button" class="utility-btn" (click)="checkBackendFileStorage()" title="Check backend file storage">
-                    🔍 Check Backend Files
-                  </button>
-                </div>
+                
                 <div class="upload-info">
                   <small>Supported formats: PDF, CSV, PNG, JPG, JPEG, DOCX (Max 25MB per file)</small>
                 </div>

@@ -42,7 +42,7 @@ body { font-family: "Open Sans", sans-serif; background: var(--background-gray);
 
 /* Loading */
 .loading-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.5); display: flex; justify-content: center; align-items: center; z-index: 1000; }
-.loading-spinner { background: var(--white); padding: 30px; border-radius: 12px; text-align: center; }
+.loading-spinner { padding: 30px; text-align: center; }
 .spinner { width: 40px; height: 40px; border: 4px solid var(--light-gray); border-top: 4px solid var(--primary-blue); border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 15px; }
 @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
@@ -299,7 +299,7 @@ body { font-family: "Open Sans", sans-serif; background: var(--background-gray);
 
 /* Loading/Error States */
 .loading-state, .error-state { text-align: center; padding: 40px 20px; }
-.loading-spinner { background: white; border-radius: 12px; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1); padding: 30px; display: inline-block; }
+.loading-spinner { padding: 30px; display: inline-block; }
 .loading-spinner p { margin: 15px 0 0 0; color: #6c757d; }
 .error-card { background: white; border-radius: 12px; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1); padding: 30px; display: inline-block; max-width: 500px; }
 .error-card h3 { margin: 0 0 10px 0; color: #dc3545; font-size: 1.3rem; font-weight: 600; }
@@ -406,6 +406,7 @@ body { font-family: "Open Sans", sans-serif; background: var(--background-gray);
 .loading-spinner {
   font-size: 3rem;
   animation: spin 1s linear infinite;
+  /* No background needed - just the spinner */
 }
 
 @keyframes spin {
