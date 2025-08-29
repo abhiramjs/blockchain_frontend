@@ -1,25 +1,4 @@
-<!-- Header Section -->
-<header class="app-header">
-  <div class="header-content">
-    <div class="logo-section">
-      <div class="logo">🔗</div>
-      <div class="title">
-        <h1>Profile Data System</h1>
-        <p>Blockchain-powered profile management with Hedera integration</p>
-      </div>
-    </div>
-    <div class="header-info">
-      <div class="status-indicator">
-        <span class="status-dot"></span>
-        <span class="status-text">API Disconnected</span>
-      </div>
-      <div class="status-indicator">
-        <span class="status-dot connected"></span>
-        <span class="status-text">Blockchain Connected</span>
-      </div>
-    </div>
-  </div>
-</header>
+
 
 <!-- Navigation Tabs -->
 <nav class="tab-navigation">
@@ -46,20 +25,7 @@
 </nav>
 
 <!-- Messages Section -->
-<div class="messages-container" *ngIf="errorMessage || successMessage || readableError">
-  <div class="message error" *ngIf="errorMessage">
-    <span class="message-icon">⚠️</span>
-    <span class="message-text">{{ errorMessage }}</span>
-  </div>
-  <div class="message error" *ngIf="readableError && !errorMessage">
-    <span class="message-icon">⚠️</span>
-    <span class="message-text">{{ readableError }}</span>
-  </div>
-  <div class="message success" *ngIf="successMessage">
-    <span class="message-icon">✅</span>
-    <span class="message-text">{{ successMessage }}</span>
-  </div>
-</div>
+
 
 <!-- Loading Overlay -->
 <div class="loading-overlay" *ngIf="isLoading">
@@ -76,10 +42,7 @@
     <div *ngIf="activeTab === 'create'" class="tab-panel">
       <div class="create-profile-container">
         <!-- Header -->
-        <div class="header-section">
-          <h1>➕ Create Company Profile</h1>
-          <p>Create a new company profile and receive a private key for secure editing</p>
-        </div>
+       
 
         <!-- Create Profile Form -->
         <form [formGroup]="createForm" (ngSubmit)="createProfile()" class="form-section">
@@ -396,10 +359,7 @@
     <div *ngIf="activeTab === 'read'" class="tab-panel">
       <div class="read-profile-container">
         <!-- Header -->
-        <div class="header-section">
-          <h1>📖 Read Single Latest Profile</h1>
-          <p>View the single most recently created or updated company profile from the blockchain</p>
-        </div>
+        
 
         <!-- Debug Info -->
 
@@ -590,10 +550,7 @@
     <div *ngIf="activeTab === 'update'" class="tab-panel">
       <div class="update-profile-container">
         <!-- Header -->
-        <div class="header-section">
-          <h1>✏️ Update Company Profile</h1>
-          <p>Enter your private key to load and update your company profile</p>
-        </div>
+       
 
         <!-- Update Profile Messages -->
         <div class="messages-container" *ngIf="updateProfileError || updateProfileSuccess">
@@ -933,10 +890,7 @@
     <div *ngIf="activeTab === 'regulator'" class="tab-panel">
       <div class="regulator-profile-container">
         <!-- Header -->
-        <div class="header-section">
-          <h1>🔍 Regulatory Profile</h1>
-          <p>Regulatory oversight and audit functionality for blockchain profiles</p>
-        </div>
+        
 
         <!-- Loading State -->
         <div *ngIf="regulatorProfileLoading" class="loading-section">
